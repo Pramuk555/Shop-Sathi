@@ -1,0 +1,94 @@
+.bill-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: var(--white);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.item-info h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark-text);
+  margin-bottom: 4px;
+}
+
+.item-info p {
+  font-size: 13px;
+  color: var(--grey-text);
+}
+
+.add-item-btn {
+  background-color: #f3f4f5;
+  color: var(--primary);
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  transition: all var(--transition-fast);
+}
+
+.add-item-btn:active {
+  background-color: #e7e8e9;
+  transform: scale(0.95);
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  background-color: var(--light-green);
+  border-radius: 20px;
+  padding: 4px;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--primary);
+  background: transparent;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.qty-btn:hover {
+  transform: scale(1.1);
+  background-color: rgba(13, 99, 27, 0.05);
+}
+
+.qty-btn:active {
+  transform: scale(0.95);
+  background-color: rgba(13, 99, 27, 0.1);
+}
+
+.qty-btn span {
+  font-size: 18px;
+}
+
+.qty-value {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 24px;
+  text-align: center;
+  font-size: 15px;
+}
+
+/* Delete Button Enhancements */
+.remove-btn {
+  transition: all var(--transition-fast);
+}
+
+.remove-btn:hover {
+  color: var(--red) !important;
+  background-color: rgba(186, 26, 26, 0.1) !important;
+  transform: scale(1.05);
+}
+
+.remove-btn:active {
+  animation: shake 0.2s ease-in-out;
+}

@@ -1,0 +1,58 @@
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 72px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.category-card:hover {
+  transform: scale(1.02);
+}
+
+.category-card:hover .category-icon-wrapper {
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.category-card:active {
+  transform: scale(0.98);
+}
+
+.category-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: var(--white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--grey-text);
+  border: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.category-icon-wrapper span {
+  font-size: 28px;
+}
+
+.category-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark-text);
+}
+
+/* Selected state */
+.category-card.selected .category-icon-wrapper {
+  background-color: var(--light-green);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.category-card.selected .category-name {
+  color: var(--primary);
+  font-weight: 700;
+}

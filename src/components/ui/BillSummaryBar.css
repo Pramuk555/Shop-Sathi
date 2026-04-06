@@ -1,0 +1,44 @@
+.bill-summary-bar {
+  background-color: var(--white);
+  padding: 16px;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  /* Ensure it sits above the standard BottomNav if they overlap, or takes its place */
+  z-index: 20;
+}
+
+.summary-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-items {
+  font-size: 13px;
+  color: var(--grey-text);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.summary-total {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.summary-btn {
+  height: 48px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 24px;
+  width: auto; /* Override gradient-btn 100% width default if any */
+}
+
+.summary-btn span:not(.material-symbols-outlined) {
+  font-size: 16px;
+}
