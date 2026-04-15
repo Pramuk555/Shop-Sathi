@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { increment } from 'firebase/firestore';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import * as dbService from '../services/db';
@@ -91,7 +90,7 @@ export default function BillConfirmPage() {
 
           if (item.id) {
             await dbService.updateProduct(currentUser.uid, item.id, {
-              stock: increment(-(item.quantity))
+              stock: Math.max(0, Number(item.stock) - item.quantity)
             });
           }
         }

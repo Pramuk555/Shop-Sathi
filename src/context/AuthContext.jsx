@@ -20,15 +20,18 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // Normalize Supabase user to always expose .uid (same as .id)
+    const normalize = (user) => user ? { ...user, uid: user.id } : null;
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUser(session?.user ?? null);
+      setCurrentUser(normalize(session?.user) ?? null);
       setLoading(false);
     });
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
+      setCurrentUser(normalize(session?.user) ?? null);
     });
 
     return () => subscription.unsubscribe();
