@@ -42,7 +42,13 @@ export default function DashboardPage() {
     return 'ShopSaathi';
   });
 
-  const [lowStockCount, setLowStockCount] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      const inv = JSON.parse(localStorage.getItem('products') || '[]');
+      return inv.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5)).length;
+    }
+    return 0;
+  });
   const [recentBills, setRecentBills] = useState(() => {
     if (!currentUser || currentUser.demo) {
       const bills = JSON.parse(localStorage.getItem('bills') || '[]');
@@ -50,11 +56,85 @@ export default function DashboardPage() {
     }
     return [];
   });
-  const [monthlySales, setMonthlySales] = useState(0);
-  const [weeklySalesData, setWeeklySalesData] = useState([0, 0, 0, 0, 0, 0, 0]);
-  const [saleTrend, setSaleTrend] = useState({ percent: 0, isUp: true });
+  const [monthlySales, setMonthlySales] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      const bills = JSON.parse(localStorage.getItem('bills') || '[]');
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      return bills.reduce((sum, b) => {
+        const bDate = b.date ? new Date(b.date) : new Date(0);
+        if (bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear) {
+          return sum + Number(b.total || 0);
+        }
+        return sum;
+      }, 0);
+    }
+    return 0;
+  });
+  const [weeklySalesData, setWeeklySalesData] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      const bills = JSON.parse(localStorage.getItem('bills') || '[]');
+      const last7Days = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setHours(0,0,0,0);
+        d.setDate(d.getDate() - (6 - i));
+        return d;
+      });
+      const weeklyData = last7Days.map(day => {
+        return bills.filter(b => {
+          const bDate = new Date(b.date);
+          bDate.setHours(0,0,0,0);
+          return bDate.getTime() === day.getTime();
+        }).reduce((sum, b) => sum + (Number(b.total) || 0), 0);
+      });
+      const maxVal = Math.max(...weeklyData, 1);
+      return weeklyData.map(v => (v / maxVal) * 100);
+    }
+    return [0, 0, 0, 0, 0, 0, 0];
+  });
+  const [saleTrend, setSaleTrend] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      const bills = JSON.parse(localStorage.getItem('bills') || '[]');
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const mSales = bills.reduce((sum, b) => {
+        const bDate = b.date ? new Date(b.date) : new Date(0);
+        if (bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear) {
+          return sum + Number(b.total || 0);
+        }
+        return sum;
+      }, 0);
+
+      const lastMonthDate = new Date();
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const lMonth = lastMonthDate.getMonth();
+      const lYear = lastMonthDate.getFullYear();
+      const lMonthSales = bills.reduce((sum, b) => {
+        const bDate = b.date ? new Date(b.date) : new Date(0);
+        if (bDate.getMonth() === lMonth && bDate.getFullYear() === lYear) {
+          return sum + Number(b.total || 0);
+        }
+        return sum;
+      }, 0);
+
+      if (lMonthSales > 0) {
+        const diff = mSales - lMonthSales;
+        const pct = (diff / lMonthSales) * 100;
+        return { percent: Math.abs(Math.round(pct)), isUp: pct >= 0 };
+      }
+      return { percent: 100, isUp: true };
+    }
+    return { percent: 0, isUp: true };
+  });
   const [showNotifications, setShowNotifications] = useState(false);
-  const [criticalAlert, setCriticalAlert] = useState(null);
+  const [criticalAlert, setCriticalAlert] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      const inv = JSON.parse(localStorage.getItem('products') || '[]');
+      const lowStock = inv.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5));
+      return lowStock.length > 0 ? [...lowStock].sort((a, b) => a.stock - b.stock)[0] : null;
+    }
+    return null;
+  });
   const [overdueUdharAlert, setOverdueUdharAlert] = useState(null);
 
   useEffect(() => {
@@ -125,12 +205,6 @@ export default function DashboardPage() {
     };
 
     if (!currentUser || currentUser.demo) {
-      const bills = JSON.parse(localStorage.getItem('bills') || '[]');
-      processBillsData(bills);
-      const inv = JSON.parse(localStorage.getItem('products') || '[]');
-      const lowStock = inv.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5));
-      setLowStockCount(lowStock.length);
-      if (lowStock.length > 0) setCriticalAlert([...lowStock].sort((a, b) => a.stock - b.stock)[0]);
       return;
     }
 

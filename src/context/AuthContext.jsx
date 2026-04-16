@@ -9,14 +9,18 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { demo: true, email: 'demo@shopsaathi.app' };
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => {
+    return isSupabaseConfigured && supabase ? true : false;
+  });
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      // Demo mode — no Supabase configured yet
-      setCurrentUser({ demo: true, email: 'demo@shopsaathi.app' });
-      setLoading(false);
       return;
     }
 

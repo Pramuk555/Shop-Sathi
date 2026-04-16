@@ -16,21 +16,26 @@ export default function BillsHistoryPage() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBill, setSelectedBill] = useState(null);
-  const [shopData, setShopData] = useState({
-    name: 'ShopSaathi Store',
-    address: '',
-    phone: '',
-    logo: ''
+  const [shopData, setShopData] = useState(() => {
+    const defaultData = {
+      name: 'ShopSaathi Store',
+      address: '',
+      phone: '',
+      logo: ''
+    };
+    if (!currentUser || currentUser.demo) {
+      return {
+        name: localStorage.getItem('shopName') || defaultData.name,
+        address: localStorage.getItem('shopAddress') || defaultData.address,
+        phone: localStorage.getItem('shopPhone') || defaultData.phone,
+        logo: localStorage.getItem('shopLogo') || defaultData.logo
+      };
+    }
+    return defaultData;
   });
 
   useEffect(() => {
     if (!currentUser || currentUser.demo) {
-      setShopData({
-        name: localStorage.getItem('shopName') || 'ShopSaathi Store',
-        address: localStorage.getItem('shopAddress') || '',
-        phone: localStorage.getItem('shopPhone') || '',
-        logo: localStorage.getItem('shopLogo') || ''
-      });
       return;
     }
 

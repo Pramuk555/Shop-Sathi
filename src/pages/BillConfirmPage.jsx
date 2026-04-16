@@ -30,25 +30,30 @@ export default function BillConfirmPage() {
   const [sharing, setSharing] = useState(null); // 'loading', 'done', or null
 
   // Shop Details for Print
-  const [shopData, setShopData] = useState({
-    name: 'ShopSaathi Store',
-    address: 'Main Road, City - 123456',
-    phone: '9876543210',
-    logo: '',
-    gstNumber: '',
-    upiId: ''
+  const [shopData, setShopData] = useState(() => {
+    const defaultData = {
+      name: 'ShopSaathi Store',
+      address: 'Main Road, City - 123456',
+      phone: '9876543210',
+      logo: '',
+      gstNumber: '',
+      upiId: ''
+    };
+    if (!currentUser || currentUser.demo) {
+      return {
+        name: localStorage.getItem('shopName') || defaultData.name,
+        address: localStorage.getItem('shopAddress') || defaultData.address,
+        phone: localStorage.getItem('shopPhone') || defaultData.phone,
+        logo: localStorage.getItem('shopLogo') || defaultData.logo,
+        gstNumber: localStorage.getItem('gstNumber') || defaultData.gstNumber,
+        upiId: localStorage.getItem('upiId') || defaultData.upiId
+      };
+    }
+    return defaultData;
   });
 
   useEffect(() => {
     if (!currentUser || currentUser.demo) {
-      setShopData({
-        name: localStorage.getItem('shopName') || 'ShopSaathi Store',
-        address: localStorage.getItem('shopAddress') || 'Main Road, City - 123456',
-        phone: localStorage.getItem('shopPhone') || '9876543210',
-        logo: localStorage.getItem('shopLogo') || '',
-        gstNumber: localStorage.getItem('gstNumber') || '',
-        upiId: localStorage.getItem('upiId') || ''
-      });
       return;
     }
 
@@ -78,7 +83,7 @@ export default function BillConfirmPage() {
 
     try {
       if (isRealUser) {
-        // --- REAL FIREBASE MODE ---
+        // --- REAL SUPABASE MODE ---
         // 1. Get and increment bill number
         nextNumber = await dbService.getNextBillNumber(currentUser.uid);
         await dbService.incrementBillNumber(currentUser.uid);

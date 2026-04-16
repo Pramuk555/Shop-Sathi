@@ -10,12 +10,26 @@ export default function AddProductPage() {
   const { t } = useLanguage();
   const fileInputRef = useRef(null);
   
-  const [categories, setCategories] = useState([]);
-  const [product, setProduct] = useState({
-    name: '',
-    price: '',
-    stock: '',
-    categoryId: '',
+  const [categories, setCategories] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      return JSON.parse(localStorage.getItem('categories') || '[]');
+    }
+    return [];
+  });
+  const [product, setProduct] = useState(() => {
+    const initial = {
+      name: '',
+      price: '',
+      stock: '',
+      categoryId: '',
+    };
+    if (!currentUser || currentUser.demo) {
+      const saved = JSON.parse(localStorage.getItem('categories') || '[]');
+      if (saved.length > 0) {
+        initial.categoryId = saved[0].id;
+      }
+    }
+    return initial;
   });
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -23,14 +37,7 @@ export default function AddProductPage() {
   useEffect(() => {
     let mounted = true;
     if (!currentUser || currentUser.demo) {
-      const saved = JSON.parse(localStorage.getItem('categories') || '[]');
-      if (mounted) {
-        setCategories(saved);
-        if (saved.length > 0 && !product.categoryId) {
-          setProduct(prev => ({ ...prev, categoryId: saved[0].id }));
-        }
-      }
-      return () => { mounted = false; };
+      return;
     }
     const unsub = dbService.subscribeCategories(currentUser.uid, (data) => {
       if (mounted) {

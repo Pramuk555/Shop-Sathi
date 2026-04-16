@@ -144,7 +144,8 @@ export const translations = {
     g: "Grams",
     kg: "Kg",
     ml: "ml",
-    ltr: "Litre"
+    ltr: "Litre",
+    search_customers: "Search customers..."
   },
   hi: {
     // Nav
@@ -291,7 +292,8 @@ export const translations = {
     g: "ग्राम",
     kg: "किग्रा",
     ml: "मिली",
-    ltr: "लीटर"
+    ltr: "लीटर",
+    search_customers: "ग्राहक खोजें..."
   },
   kn: {
     // Nav
@@ -438,6 +440,7 @@ export const translations = {
     g: "ಗ್ರಾಂ",
     kg: "ಕೆಜಿ",
     ml: "ಮಿಲಿ",
-    ltr: "ಲೀಟರ್"
+    ltr: "ಲೀಟರ್",
+    search_customers: "ಗ್ರಾಹಕರನ್ನು ಹುಡುಕಿ..."
   }
 };

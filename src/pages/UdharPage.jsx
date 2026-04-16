@@ -256,11 +256,11 @@ export default function UdharPage() {
 
       {/* Search & Filter */}
       <div className="flex gap-3 mb-6">
-        <div className="flex-1 bg-surface-container-lowest border border-outline-variant rounded-xl px-4 flex items-center gap-3 shadow-sm focus-within:ring-2 ring-primary/20">
+        <div className="flex-1 bg-surface-container-low border border-outline-variant/30 rounded-2xl px-4 flex items-center gap-3 shadow-sm focus-within:ring-2 ring-primary transition-all">
           <span className="material-symbols-outlined text-on-surface-variant">search</span>
           <input 
-            className="w-full h-14 pl-14 pr-4 bg-surface-container-low border border-outline-variant/30 rounded-full text-lg font-medium outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-outline/60" 
-            placeholder={t('search_products')} 
+            className="w-full h-14 bg-transparent border-none outline-none text-lg font-medium text-on-surface placeholder:text-outline/60 focus:ring-0" 
+            placeholder={t('search_customers') || 'Search customers...'} 
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

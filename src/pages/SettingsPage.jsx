@@ -236,6 +236,8 @@ export default function SettingsPage() {
               <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant px-2">{t('shop_name') || 'Shop Name'}</label>
               <div className="bg-surface-container-high rounded-2xl p-4 focus-within:bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm">
                 <input 
+                  className="bg-transparent border-0 outline-none focus:outline-none focus:ring-0 w-full text-lg font-semibold p-0 text-on-surface" 
+                  type="text"
                   placeholder={t('shop_name_placeholder')} 
                   value={shopName}
                   onChange={(e) => handleFieldChange('shopName', e.target.value, setShopName)}

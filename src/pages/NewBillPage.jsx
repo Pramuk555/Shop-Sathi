@@ -41,7 +41,7 @@ export default function NewBillPage() {
       return;
     }
 
-    // REAL FIREBASE MODE
+    // REAL SUPABASE MODE
     const unsubProds = dbService.subscribeInventory(currentUser.uid, (data) => {
       setAllProducts(data);
     });
