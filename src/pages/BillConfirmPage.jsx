@@ -215,12 +215,12 @@ export default function BillConfirmPage() {
   const saveAndShare = async () => {
     setSharing('loading');
 
-    // Read fresh shop data from localStorage each time in case it changed
-    const freshShopName = localStorage.getItem('shopName') || 'My Shop';
-    const freshShopAddress = localStorage.getItem('shopAddress') || '';
-    const freshShopPhone = localStorage.getItem('shopPhone') || '';
-    const freshShopLogo = localStorage.getItem('shopLogo') || '';
-    const freshGstNumber = localStorage.getItem('gstNumber') || '';
+    // Use shopData state (loaded from Supabase for real users, localStorage for demo)
+    const freshShopName = shopData.name || 'My Shop';
+    const freshShopAddress = shopData.address || '';
+    const freshShopPhone = shopData.phone || '';
+    const freshShopLogo = shopData.logo || '';
+    const freshGstNumber = shopData.gstNumber || '';
 
     // Build item rows HTML
     const itemRowsHtml = items.map(item => `
