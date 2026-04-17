@@ -80,7 +80,8 @@ export const subscribeInventory = (uid, callback) => {
 };
 
 export const addProduct = async (uid, product) => {
-  return supabase.from('products').insert({ user_id: uid, ...product });
+  const { id, ...productData } = product;
+  return supabase.from('products').insert({ user_id: uid, ...productData });
 };
 
 export const updateProduct = async (uid, productId, updates) => {
@@ -121,7 +122,8 @@ export const subscribeCategories = (uid, callback) => {
 };
 
 export const addCategory = async (uid, category) => {
-  return supabase.from('categories').insert({ user_id: uid, ...category });
+  const { id, ...categoryData } = category;
+  return supabase.from('categories').insert({ user_id: uid, ...categoryData });
 };
 
 export const deleteCategory = async (uid, categoryId) => {

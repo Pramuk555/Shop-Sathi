@@ -225,8 +225,7 @@ export default function InventoryPage() {
         products.filter(p => p.categoryId === deleteConfirm.id).forEach(p => {
           dbService.deleteProduct(currentUser.uid, p.id);
         });
-        // Now delete category (category delete not implemented in dbService yet, I'll add it)
-        // Actually I'll use a generic delete if I didn't add it.
+        dbService.deleteCategory(currentUser.uid, deleteConfirm.id);
       }
     } else {
       // Demo mode
