@@ -378,57 +378,10 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Developer / Testing Section */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-2 h-8 bg-tertiary rounded-full"></div>
-          <h3 className="font-headline font-bold text-xl uppercase tracking-wider text-tertiary">Testing Tools</h3>
-        </div>
-        
-        <div className="bg-surface-container-low rounded-lg p-6 space-y-4">
-          <p className="text-sm font-medium text-on-surface-variant px-2">Fill the app with sample products and categories to test the billing flow immediately.</p>
-          <button 
-            onClick={() => {
-              const sampleCategories = [
-                { id: 'cat1', name: 'Pooja Items', color: 'border-secondary', icon: 'folder', iconBg: 'bg-secondary-fixed' },
-                { id: 'cat2', name: 'Ayurvedic Medicines', color: 'border-primary', icon: 'medical_services', iconBg: 'bg-primary-fixed' },
-                { id: 'cat3', name: 'Herbal Powders', color: 'border-tertiary', icon: 'medication', iconBg: 'bg-tertiary-fixed' },
-              ];
-              const sampleProducts = [
-                { id: 'p1', name: 'Ashwagandha', scientificName: 'Withania somnifera', categoryId: 'cat2', sellingPrice: 450, purchasePrice: 380, stock: 25, unit: 'pieces', lowStockAlert: 5, profit: 70, pct: 25 },
-                { id: 'p2', name: 'Camphor Table', scientificName: 'Cinnamomum camphora', categoryId: 'cat1', sellingPrice: 85, purchasePrice: 60, stock: 100, unit: 'pieces', lowStockAlert: 10, profit: 25, pct: 100 },
-                { id: 'p3', name: 'Triphala Powder', scientificName: 'Emblica officinalis', categoryId: 'cat3', sellingPrice: 220, purchasePrice: 180, stock: 15, unit: 'pieces', lowStockAlert: 5, profit: 40, pct: 15 },
-                { id: 'p4', name: 'Sandalwood Sticks', scientificName: 'Santalum album', categoryId: 'cat1', sellingPrice: 650, purchasePrice: 500, stock: 8, unit: 'pieces', lowStockAlert: 3, profit: 150, pct: 8 },
-              ];
-              localStorage.setItem('categories', JSON.stringify(sampleCategories));
-              localStorage.setItem('products', JSON.stringify(sampleProducts));
-              alert('Sample data added! You can now test the billing system.');
-              window.location.href = '/dashboard';
-            }}
-            className="w-full flex items-center justify-center gap-3 bg-tertiary text-on-tertiary h-16 rounded-xl font-headline font-bold text-lg shadow-lg active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined">database</span>
-            Seed Sample Data
-          </button>
-          
-          <button 
-            onClick={() => {
-              if (window.confirm('Clear all local storage data? This cannot be undone.')) {
-                localStorage.clear();
-                window.location.reload();
-              }
-            }}
-            className="w-full text-error font-bold text-sm uppercase tracking-widest pt-2"
-          >
-            Reset All Application Data
-          </button>
-        </div>
-        
-        <div className="pt-8 text-center text-on-surface-variant opacity-40">
-          <p className="text-sm font-bold uppercase tracking-widest">App version 2.4.0</p>
-          <p className="text-xs font-medium mt-1">Made with ❤️ for Indian Sellers</p>
-        </div>
-      </section>
+      <div className="pt-8 text-center text-on-surface-variant opacity-40">
+        <p className="text-sm font-bold uppercase tracking-widest">App version 2.4.0</p>
+        <p className="text-xs font-medium mt-1">Made with ❤️ for Indian Sellers</p>
+      </div>
 
       {/* Toast Notification */}
       {showToast && (
