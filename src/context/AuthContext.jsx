@@ -70,11 +70,23 @@ export function AuthProvider({ children }) {
     setCurrentUser(null);
   };
 
+  const resetPassword = async (email) => {
+    if (!isSupabaseConfigured || !supabase) {
+      // Demo mode
+      return { data: null, error: null };
+    }
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/login',
+    });
+    return { data, error };
+  };
+
   const value = {
     currentUser,
     signUp,
     signIn,
     logout,
+    resetPassword,
   };
 
   return (

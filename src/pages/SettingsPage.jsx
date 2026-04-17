@@ -19,21 +19,21 @@ export default function SettingsPage() {
   });
   const [shopName, setShopName] = useState(() => {
     if (!currentUser || currentUser.demo) {
-      return localStorage.getItem('shopName') || 'Sharma General Store';
+      return localStorage.getItem('shopName') || '';
     }
-    return 'Sharma General Store';
+    return '';
   });
   const [shopAddress, setShopAddress] = useState(() => {
     if (!currentUser || currentUser.demo) {
-      return localStorage.getItem('shopAddress') || '123, Main Road, Bangalore';
+      return localStorage.getItem('shopAddress') || '';
     }
-    return '123, Main Road, Bangalore';
+    return '';
   });
   const [shopPhone, setShopPhone] = useState(() => {
     if (!currentUser || currentUser.demo) {
-      return localStorage.getItem('shopPhone') || '9876543210';
+      return localStorage.getItem('shopPhone') || '';
     }
-    return '9876543210';
+    return '';
   });
   const [gstNumber, setGstNumber] = useState(() => {
     if (!currentUser || currentUser.demo) {
@@ -43,9 +43,9 @@ export default function SettingsPage() {
   });
   const [upiId, setUpiId] = useState(() => {
     if (!currentUser || currentUser.demo) {
-      return localStorage.getItem('upiId') || 'sharma.store@upi';
+      return localStorage.getItem('upiId') || '';
     }
-    return 'sharma.store@upi';
+    return '';
   });
   const [isGstEnabled, setIsGstEnabled] = useState(() => {
     if (!currentUser || currentUser.demo) {
@@ -65,11 +65,11 @@ export default function SettingsPage() {
     const unsub = dbService.getShopProfile(currentUser.uid, (data) => {
       if (data) {
         setShopLogo(data.shopLogo || '');
-        setShopName(data.shopName || 'Sharma General Store');
-        setShopAddress(data.shopAddress || '123, Main Road, Bangalore');
-        setShopPhone(data.shopPhone || '9876543210');
+        setShopName(data.shopName || '');
+        setShopAddress(data.shopAddress || '');
+        setShopPhone(data.shopPhone || '');
         setGstNumber(data.gstNumber || '');
-        setUpiId(data.upiId || 'sharma.store@upi');
+        setUpiId(data.upiId || '');
         setIsGstEnabled(!!data.gstEnabled);
       }
     });

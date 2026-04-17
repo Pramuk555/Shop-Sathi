@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -11,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const { signIn, signUp, currentUser } = useAuth();
+  const { signIn, signUp, currentUser, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,7 +37,15 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      if (isSignUp) {
+      if (isResetMode) {
+        const { error: resetError } = await resetPassword(email);
+        if (resetError) {
+          setError(resetError.message);
+        } else {
+          setSuccessMsg('Password reset link sent to your email!');
+          setIsResetMode(false);
+        }
+      } else if (isSignUp) {
         const { error: signUpError } = await signUp(email, password);
         if (signUpError) {
           setError(signUpError.message);
@@ -88,22 +97,26 @@ export default function LoginPage() {
           <div className="bg-surface-container-low rounded-xl p-8 flex flex-col gap-6 transition-all">
 
             {/* Tab Toggle */}
-            <div className="flex bg-surface-container-high rounded-xl p-1 gap-1">
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(false); setError(''); setSuccessMsg(''); }}
-                className={`flex-1 py-2 rounded-lg font-headline font-bold text-base transition-all ${!isSignUp ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'}`}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(true); setError(''); setSuccessMsg(''); }}
-                className={`flex-1 py-2 rounded-lg font-headline font-bold text-base transition-all ${isSignUp ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'}`}
-              >
-                Sign Up
-              </button>
-            </div>
+            {!isResetMode ? (
+              <div className="flex bg-surface-container-high rounded-xl p-1 gap-1">
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(false); setError(''); setSuccessMsg(''); }}
+                  className={`flex-1 py-2 rounded-lg font-headline font-bold text-base transition-all ${!isSignUp ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'}`}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(true); setError(''); setSuccessMsg(''); }}
+                  className={`flex-1 py-2 rounded-lg font-headline font-bold text-base transition-all ${isSignUp ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
+            ) : (
+              <h3 className="font-headline font-bold text-xl text-center text-primary">Reset Password</h3>
+            )}
 
             {error && (
               <p className="text-error text-center font-bold text-sm bg-error-container p-2 rounded-lg">
@@ -139,35 +152,59 @@ export default function LoginPage() {
               </div>
 
               {/* Password Field */}
-              <div className="flex flex-col gap-2">
-                <label className="font-headline font-bold text-base text-on-surface px-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-xl">
-                    lock
-                  </span>
-                  <input
-                    className="w-full h-[56px] pl-12 pr-12 bg-surface-container-high rounded-lg border-none text-base font-medium focus:ring-2 focus:ring-secondary/20 focus:bg-surface-container-lowest transition-all placeholder:text-outline-variant/50"
-                    placeholder={isSignUp ? 'Min. 6 characters' : 'Enter your password'}
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
-                    tabIndex={-1}
-                  >
-                    <span className="material-symbols-outlined text-xl">
-                      {showPassword ? 'visibility_off' : 'visibility'}
+              {!isResetMode && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="font-headline font-bold text-base text-on-surface">
+                      Password
+                    </label>
+                    {!isSignUp && (
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsResetMode(true); setError(''); setSuccessMsg(''); }}
+                        className="text-primary text-xs font-bold hover:underline"
+                      >
+                        Forgot Password?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-xl">
+                      lock
                     </span>
-                  </button>
+                    <input
+                      className="w-full h-[56px] pl-12 pr-12 bg-surface-container-high rounded-lg border-none text-base font-medium focus:ring-2 focus:ring-secondary/20 focus:bg-surface-container-lowest transition-all placeholder:text-outline-variant/50"
+                      placeholder={isSignUp ? 'Min. 6 characters' : 'Enter your password'}
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required={!isResetMode}
+                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
+                      tabIndex={-1}
+                    >
+                      <span className="material-symbols-outlined text-xl">
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {isResetMode && (
+                <button 
+                  type="button" 
+                  onClick={() => setIsResetMode(false)}
+                  className="text-on-surface-variant text-sm font-bold flex items-center gap-1 hover:text-primary transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">arrow_back</span>
+                  Back to Login
+                </button>
+              )}
 
               <button
                 type="submit"
@@ -178,7 +215,7 @@ export default function LoginPage() {
                   <span className="animate-spin w-6 h-6 border-4 border-white border-t-transparent rounded-full" />
                 ) : (
                   <>
-                    <span>{isSignUp ? 'Create Account' : 'Login'}</span>
+                    <span>{isResetMode ? 'Send Reset Link' : isSignUp ? 'Create Account' : 'Login'}</span>
                     <span className="material-symbols-outlined">arrow_forward</span>
                   </>
                 )}

@@ -37,9 +37,9 @@ export default function DashboardPage() {
 
   const [shopName, setShopName] = useState(() => {
     if (!currentUser || currentUser.demo) {
-      return localStorage.getItem('shopName') || 'ShopSaathi';
+      return localStorage.getItem('shopName') || '';
     }
-    return 'ShopSaathi';
+    return '';
   });
 
   const [lowStockCount, setLowStockCount] = useState(() => {

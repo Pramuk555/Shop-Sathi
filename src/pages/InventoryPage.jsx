@@ -3,11 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import * as dbService from '../services/db';
 
-const DEFAULT_CATEGORIES = [
-  { id: 'cat1', name: 'Pooja Items', color: 'border-secondary', icon: 'folder', iconBg: 'bg-secondary-fixed' },
-  { id: 'cat2', name: 'Ayurvedic Medicines', color: 'border-primary', icon: 'medical_services', iconBg: 'bg-primary-fixed' },
-  { id: 'cat3', name: 'Herbal Powders', color: 'border-tertiary', icon: 'medication', iconBg: 'bg-tertiary-fixed' },
-];
+const DEFAULT_CATEGORIES = [];
 
 export default function InventoryPage() {
   const { t } = useLanguage();
