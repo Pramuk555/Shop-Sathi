@@ -63,22 +63,19 @@ export function AuthProvider({ children }) {
     return { user: data?.user, error };
   };
 
+  const resetPassword = async (email) => {
+    if (!isSupabaseConfigured || !supabase) return { error: null };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    return { error };
+  };
+
   const logout = async () => {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
     setCurrentUser(null);
-  };
-
-  const resetPassword = async (email) => {
-    if (!isSupabaseConfigured || !supabase) {
-      // Demo mode
-      return { data: null, error: null };
-    }
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/login',
-    });
-    return { data, error };
   };
 
   const value = {
