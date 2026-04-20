@@ -637,7 +637,8 @@ export default function InventoryPage() {
       {/* FAB - Action Button */}
       {view === 'items' && (
         <div className="fixed bottom-[100px] right-6 z-40">
-          <button 
+          <button
+            onClick={() => {
               setIsItemModalOpen(true);
               setEditingItem(null);
               setItemForm({name: '', scientificName: '', unit: 'pcs', purchasePrice: '', sellingPrice: '', stock: '', lowStockAlert: '', expiryDate: ''});
