@@ -136,6 +136,7 @@ export default function NewBillPage() {
       setItems([...items, { 
         ...product, 
         quantity: 1, 
+        unit: product.unit || 'pcs',
         price: Number(product.sellingPrice) || 0,
         name: product.name || 'Unknown'
       }]);
@@ -146,11 +147,27 @@ export default function NewBillPage() {
   const updateQuantity = (id, delta) => {
     setItems(prev => prev.map(item => {
       if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
+        const currentQty = Number(item.quantity) || 0;
+        const newQty = Math.max(0, currentQty + delta);
         // Check stock
         if (newQty > Number(item.stock)) {
           alert(`Only ${item.stock} items in stock!`);
           return item;
+        }
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const setInternalQuantity = (id, value) => {
+    setItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = Number(value);
+        if (isNaN(newQty)) return item;
+        if (newQty > Number(item.stock)) {
+          alert(`Only ${item.stock} in stock!`);
+          return { ...item, quantity: Number(item.stock) };
         }
         return { ...item, quantity: newQty };
       }
@@ -291,10 +308,31 @@ export default function NewBillPage() {
                       onChange={(e) => updatePrice(item.id, e.target.value)}
                     />
                   </div>
-                  <div className="flex items-center gap-4 bg-surface-container-highest rounded-full px-2 py-1">
-                    <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all">-</button>
-                    <span className="font-black text-on-surface text-lg w-6 text-center">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all">+</button>
+                  <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-3 py-1">
+                    <button 
+                      onClick={() => updateQuantity(item.id, (item.unit === 'g' || item.unit === 'ml') ? -100 : (item.unit === 'kg' || item.unit === 'ltr') ? -0.5 : -1)} 
+                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all font-bold"
+                    >
+                      -
+                    </button>
+                    <div className="flex flex-col items-center">
+                      <input 
+                        type="number"
+                        step="any"
+                        className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0"
+                        value={item.quantity}
+                        onChange={(e) => setInternalQuantity(item.id, e.target.value)}
+                      />
+                      <span className="text-[10px] font-black text-primary/60 uppercase tracking-tighter leading-none mt-0.5">
+                        {t(item.unit) || item.unit}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => updateQuantity(item.id, (item.unit === 'g' || item.unit === 'ml') ? 100 : (item.unit === 'kg' || item.unit === 'ltr') ? 0.5 : 1)} 
+                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all font-bold"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
                 <div className="mt-4 flex justify-between items-center text-sm font-bold border-t border-outline-variant/20 pt-3">

@@ -226,7 +226,7 @@ button:not(:disabled):active, .clickable:active {
 
 /* Global Spacing Utility */
 .safe-bottom-padding {
-  padding-bottom: 180px !important;
+  padding-bottom: 420px !important;
 }
 
 .fixed-action-footer {

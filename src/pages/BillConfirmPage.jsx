@@ -652,9 +652,11 @@ export default function BillConfirmPage() {
         </div>
         <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-none">
           {items.map(item => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span className="text-on-surface-variant">{item.name} × {item.quantity}</span>
-              <span className="font-bold">₹{item.price * item.quantity}</span>
+            <div key={item.id} className="flex justify-between text-sm items-center">
+              <span className="text-on-surface-variant font-medium">
+                {item.name} <span className="text-[10px] opacity-70">({t(item.unit) || item.unit})</span> × {item.quantity}
+              </span>
+              <span className="font-bold">₹{(item.price * item.quantity).toLocaleString()}</span>
             </div>
           ))}
         </div>

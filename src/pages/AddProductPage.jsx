@@ -16,12 +16,9 @@ export default function AddProductPage() {
     }
     return [];
   });
-  const [product, setProduct] = useState(() => {
-    const initial = {
-      name: '',
-      price: '',
       stock: '',
       categoryId: '',
+      unit: 'pcs',
     };
     if (!currentUser || currentUser.demo) {
       const saved = JSON.parse(localStorage.getItem('categories') || '[]');
@@ -64,7 +61,7 @@ export default function AddProductPage() {
       sellingPrice: Number(product.price),
       purchasePrice: Number(product.price * 0.8), // Default guess
       stock: Number(product.stock),
-      unit: 'pcs',
+      unit: product.unit,
       lowStockAlert: 5,
       image: imagePreview || ''
     };
@@ -169,19 +166,39 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">{t('categories')}</label>
-            <div className="bg-surface-container-high rounded-2xl p-4 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm relative">
-              <select 
-                value={product.categoryId}
-                onChange={e => setProduct({...product, categoryId: e.target.value})}
-                className="bg-transparent border-none w-full text-lg font-bold p-0 appearance-none focus:ring-0 text-on-surface pr-8"
-              >
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">{t('unit')}</label>
+              <div className="bg-surface-container-high rounded-2xl p-4 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm relative">
+                <select 
+                  value={product.unit}
+                  onChange={e => setProduct({...product, unit: e.target.value})}
+                  className="bg-transparent border-none w-full text-lg font-bold p-0 appearance-none focus:ring-0 text-on-surface pr-8"
+                >
+                  <option value="pcs">{t('pcs')}</option>
+                  <option value="g">{t('g')}</option>
+                  <option value="kg">{t('kg')}</option>
+                  <option value="ml">{t('ml')}</option>
+                  <option value="ltr">{t('ltr')}</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">{t('categories')}</label>
+              <div className="bg-surface-container-high rounded-2xl p-4 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm relative">
+                <select 
+                  value={product.categoryId}
+                  onChange={e => setProduct({...product, categoryId: e.target.value})}
+                  className="bg-transparent border-none w-full text-lg font-bold p-0 appearance-none focus:ring-0 text-on-surface pr-8"
+                >
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+              </div>
             </div>
           </div>
         </div>
