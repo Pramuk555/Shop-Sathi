@@ -16,6 +16,10 @@ export default function AddProductPage() {
     }
     return [];
   });
+  const [product, setProduct] = useState(() => {
+    const initial = {
+      name: '',
+      price: '',
       stock: '',
       categoryId: '',
       unit: 'pcs',
@@ -57,8 +61,6 @@ export default function AddProductPage() {
     const newProduct = {
       name: product.name,
       scientificName: '', // Optional
-      categoryId: product.categoryId,
-      sellingPrice: Number(product.price),
       purchasePrice: Number(product.price * 0.8), // Default guess
       stock: Number(product.stock),
       unit: product.unit,
