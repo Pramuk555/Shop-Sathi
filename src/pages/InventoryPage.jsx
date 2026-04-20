@@ -162,38 +162,47 @@ export default function InventoryPage() {
     setView('items');
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (!itemForm.name.trim()) return;
 
-    const newItem = {
-      ...itemForm,
-      id: editingItem ? editingItem.id : 'prod_' + Date.now(),
-      categoryId: selectedCategory.id,
-      profit: Number(itemForm.sellingPrice) - Number(itemForm.purchasePrice),
-      pct: Math.min(100, (Number(itemForm.stock) / 100) * 100) // Rough visualization
-    };
+    try {
+      const newItem = {
+        ...itemForm,
+        id: editingItem ? editingItem.id : 'prod_' + Date.now(),
+        categoryId: selectedCategory.id,
+        profit: Number(itemForm.sellingPrice) - Number(itemForm.purchasePrice),
+        pct: Math.min(100, (Number(itemForm.stock) / 100) * 100) // Rough visualization
+      };
 
-    if (currentUser && !currentUser.demo) {
-      if (editingItem) {
-        dbService.updateProduct(currentUser.uid, editingItem.id, newItem);
+      if (currentUser && !currentUser.demo) {
+        if (editingItem) {
+          await dbService.updateProduct(currentUser.uid, editingItem.id, newItem);
+        } else {
+          await dbService.addProduct(currentUser.uid, newItem);
+        }
       } else {
-        dbService.addProduct(currentUser.uid, newItem);
+        // Demo logic
+        if (editingItem) {
+          const updatedProds = products.map(p => p.id === editingItem.id ? newItem : p);
+          setProducts(updatedProds);
+          localStorage.setItem('products', JSON.stringify(updatedProds));
+        } else {
+          const updatedProds = [...products, newItem];
+          setProducts(updatedProds);
+          localStorage.setItem('products', JSON.stringify(updatedProds));
+        }
       }
-    } else {
-      // Demo logic
-      if (editingItem) {
-        setProducts(products.map(p => p.id === editingItem.id ? newItem : p));
-      } else {
-        setProducts([...products, newItem]);
-      }
+
+      setIsItemModalOpen(false);
+      setEditingItem(null);
+      setItemForm({
+        name: '', scientificName: '', unit: 'pcs', purchasePrice: '',
+        sellingPrice: '', stock: '', lowStockAlert: '', expiryDate: ''
+      });
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert('Failed to save product. Please try again.');
     }
-
-    setIsItemModalOpen(false);
-    setEditingItem(null);
-    setItemForm({
-      name: '', scientificName: '', unit: 'pieces', purchasePrice: '',
-      sellingPrice: '', stock: '', lowStockAlert: '', expiryDate: ''
-    });
   };
 
   const editItem = (item) => {
@@ -629,10 +638,9 @@ export default function InventoryPage() {
       {view === 'items' && (
         <div className="fixed bottom-[100px] right-6 z-40">
           <button 
-            onClick={() => {
-              setEditingItem(null);
-              setItemForm({name: '', scientificName: '', unit: 'pieces', purchasePrice: '', sellingPrice: '', stock: '', lowStockAlert: '', expiryDate: ''});
               setIsItemModalOpen(true);
+              setEditingItem(null);
+              setItemForm({name: '', scientificName: '', unit: 'pcs', purchasePrice: '', sellingPrice: '', stock: '', lowStockAlert: '', expiryDate: ''});
             }}
             className="h-16 px-8 rounded-full bg-gradient-to-br from-primary-container to-primary text-on-primary shadow-xl flex items-center gap-3 active:scale-95 transition-all hover:shadow-primary/30 fab-button"
           >

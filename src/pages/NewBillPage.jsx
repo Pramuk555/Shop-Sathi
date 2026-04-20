@@ -151,7 +151,7 @@ export default function NewBillPage() {
         const newQty = Math.max(0, currentQty + delta);
         // Check stock
         if (newQty > Number(item.stock)) {
-          alert(`Only ${item.stock} items in stock!`);
+          alert(`Only ${item.stock} in stock!`);
           return item;
         }
         return { ...item, quantity: newQty };
