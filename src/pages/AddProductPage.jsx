@@ -16,6 +16,12 @@ export default function AddProductPage() {
     }
     return [];
   });
+  const [formData, setFormData] = useState(() => {
+    const initial = {
+      name: '',
+      scientificName: '',
+      purchasePrice: '',
+      sellingPrice: '',
       stock: '',
       categoryId: '',
       unit: 'pcs',
