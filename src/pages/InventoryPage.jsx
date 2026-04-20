@@ -40,7 +40,7 @@ export default function InventoryPage() {
   const [itemForm, setItemForm] = useState({
     name: '',
     scientificName: '',
-    unit: 'pieces',
+    unit: 'pcs',
     purchasePrice: '',
     sellingPrice: '',
     stock: '',
@@ -137,17 +137,25 @@ export default function InventoryPage() {
   };
 
   // Handlers
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCatName.trim()) return;
+    const tempId = 'cat_' + Date.now();
     const newCat = {
-      id: 'cat_' + Date.now(),
+      id: tempId,
       name: newCatName,
       color: 'border-primary',
       icon: 'folder',
       iconBg: 'bg-primary-fixed'
     };
+
     if (currentUser && !currentUser.demo) {
-      dbService.addCategory(currentUser.uid, newCat);
+      try {
+        await dbService.addCategory(currentUser.uid, newCat);
+        // We don't manually set categories here; let categories subscribe update it with real UUID
+      } catch (err) {
+        console.error('Failed to add category:', err);
+        alert('Failed to save category to cloud.');
+      }
     } else {
       setCategories([...categories, newCat]);
       localStorage.setItem('categories', JSON.stringify([...categories, newCat]));
@@ -166,13 +174,22 @@ export default function InventoryPage() {
     if (!itemForm.name.trim()) return;
 
     try {
+      // Create data object for database (remove fields not in schema)
+      const { expiryDate, ...persistableData } = itemForm;
+      
       const newItem = {
-        ...itemForm,
+        ...persistableData,
         id: editingItem ? editingItem.id : 'prod_' + Date.now(),
-        categoryId: selectedCategory.id,
+        categoryId: selectedCategory?.id,
         profit: Number(itemForm.sellingPrice) - Number(itemForm.purchasePrice),
-        pct: Math.min(100, (Number(itemForm.stock) / 100) * 100) // Rough visualization
+        pct: Math.min(100, (Number(itemForm.stock) / 100) * 100)
       };
+
+      // Safeguard against temporary category IDs in Real Mode
+      if (currentUser && !currentUser.demo && newItem.categoryId?.startsWith('cat_')) {
+        alert('Category is still syncing. Please wait a second and try again.');
+        return;
+      }
 
       if (currentUser && !currentUser.demo) {
         if (editingItem) {
@@ -201,7 +218,7 @@ export default function InventoryPage() {
       });
     } catch (err) {
       console.error('Save failed:', err);
-      alert('Failed to save product. Please try again.');
+      alert('Failed to save product. Please check your data and try again.');
     }
   };
 
