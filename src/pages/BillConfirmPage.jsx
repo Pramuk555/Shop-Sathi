@@ -350,16 +350,27 @@ export default function BillConfirmPage() {
 
       const filename = `ShopSaathi-Bill-${billNumber}.pdf`;
 
-      if (navigator.share && navigator.canShare) {
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      const pdfBlob = pdf.output('blob');
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+      const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+
+      if (canShareFiles) {
         try {
           await navigator.share({ files: [file], title: `Bill from ${freshShopName}` });
-        } catch {
-          pdf.save(filename);
+        } catch (err) {
+          if (err?.name !== 'AbortError') {
+            // User didn't cancel — fallback to WhatsApp
+            pdf.save(filename);
+            const waText = encodeURIComponent(`Bill #${billNumber} from ${freshShopName}\nCustomer: ${customerName || 'Guest'}\nTotal: ₹${total}`);
+            window.open(`https://wa.me/?text=${waText}`, '_blank');
+          }
         }
       } else {
+        // No file sharing support — download PDF + open WhatsApp with bill summary
         pdf.save(filename);
+        const waText = encodeURIComponent(`Bill #${billNumber} from ${freshShopName}\nCustomer: ${customerName || 'Guest'}\nTotal: ₹${total}\n\nPlease find the attached PDF bill.`);
+        window.open(`https://wa.me/?text=${waText}`, '_blank');
       }
 
     } catch (error) {
