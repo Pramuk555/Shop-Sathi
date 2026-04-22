@@ -60,14 +60,13 @@ export default function AddProductPage() {
     
     const newProduct = {
       name: product.name,
-      scientificName: '', // Optional
+      scientificName: '',
       categoryId: product.categoryId || null,
       sellingPrice: Number(product.price),
-      purchasePrice: Number(product.price * 0.8), // Default guess
+      purchasePrice: 0,
       stock: Number(product.stock),
       unit: product.unit,
       lowStockAlert: 5,
-      image: imagePreview || ''
     };
 
     if (currentUser && !currentUser.demo) {
