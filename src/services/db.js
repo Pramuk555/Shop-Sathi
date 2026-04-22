@@ -79,16 +79,28 @@ export const subscribeInventory = (uid, callback) => {
   return () => supabase.removeChannel(subscription);
 };
 
+const sanitizeProduct = ({ id, image, expiryDate, ...p }) => ({
+  name: p.name || '',
+  scientificName: p.scientificName || '',
+  unit: p.unit || 'pcs',
+  categoryId: p.categoryId || null,
+  purchasePrice: Number(p.purchasePrice) || 0,
+  sellingPrice: Number(p.sellingPrice) || 0,
+  stock: Number(p.stock) || 0,
+  lowStockAlert: Number(p.lowStockAlert) || 0,
+  profit: Number(p.profit) || 0,
+  pct: Number(p.pct) || 0,
+});
+
 export const addProduct = async (uid, product) => {
-  const { id, ...productData } = product;
-  const { error } = await supabase.from('products').insert({ user_id: uid, ...productData });
+  const { error } = await supabase.from('products').insert({ user_id: uid, ...sanitizeProduct(product) });
   if (error) throw error;
 };
 
 export const updateProduct = async (uid, productId, updates) => {
   const { error } = await supabase
     .from('products')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ ...sanitizeProduct(updates), updated_at: new Date().toISOString() })
     .eq('id', productId)
     .eq('user_id', uid);
   if (error) throw error;
