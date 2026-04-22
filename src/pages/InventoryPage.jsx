@@ -192,10 +192,15 @@ export default function InventoryPage() {
       }
 
       if (currentUser && !currentUser.demo) {
-        if (editingItem) {
-          await dbService.updateProduct(currentUser.uid, editingItem.id, newItem);
-        } else {
-          await dbService.addProduct(currentUser.uid, newItem);
+        try {
+          if (editingItem) {
+            await dbService.updateProduct(currentUser.uid, editingItem.id, newItem);
+          } else {
+            await dbService.addProduct(currentUser.uid, newItem);
+          }
+        } catch (err) {
+          alert('Error saving product: ' + (err?.message || JSON.stringify(err)));
+          return;
         }
       } else {
         // Demo logic

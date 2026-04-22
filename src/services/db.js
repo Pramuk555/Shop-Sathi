@@ -81,19 +81,22 @@ export const subscribeInventory = (uid, callback) => {
 
 export const addProduct = async (uid, product) => {
   const { id, ...productData } = product;
-  return supabase.from('products').insert({ user_id: uid, ...productData });
+  const { error } = await supabase.from('products').insert({ user_id: uid, ...productData });
+  if (error) throw error;
 };
 
 export const updateProduct = async (uid, productId, updates) => {
-  return supabase
+  const { error } = await supabase
     .from('products')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', productId)
     .eq('user_id', uid);
+  if (error) throw error;
 };
 
 export const deleteProduct = async (uid, productId) => {
-  return supabase.from('products').delete().eq('id', productId).eq('user_id', uid);
+  const { error } = await supabase.from('products').delete().eq('id', productId).eq('user_id', uid);
+  if (error) throw error;
 };
 
 // --- Categories ---
@@ -123,11 +126,13 @@ export const subscribeCategories = (uid, callback) => {
 
 export const addCategory = async (uid, category) => {
   const { id, ...categoryData } = category;
-  return supabase.from('categories').insert({ user_id: uid, ...categoryData });
+  const { error } = await supabase.from('categories').insert({ user_id: uid, ...categoryData });
+  if (error) throw error;
 };
 
 export const deleteCategory = async (uid, categoryId) => {
-  return supabase.from('categories').delete().eq('id', categoryId).eq('user_id', uid);
+  const { error } = await supabase.from('categories').delete().eq('id', categoryId).eq('user_id', uid);
+  if (error) throw error;
 };
 
 // --- Bills ---
@@ -161,7 +166,8 @@ export const subscribeBills = (uid, callback) => {
 };
 
 export const addBill = async (uid, bill) => {
-  return supabase.from('bills').insert({ user_id: uid, ...bill });
+  const { error } = await supabase.from('bills').insert({ user_id: uid, ...bill });
+  if (error) throw error;
 };
 
 // --- Udhar (Credit Tracking) ---
@@ -190,17 +196,20 @@ export const subscribeUdhar = (uid, callback) => {
 };
 
 export const addUdhar = async (uid, udharEntry) => {
-  return supabase.from('udhar_list').insert({ user_id: uid, ...udharEntry });
+  const { error } = await supabase.from('udhar_list').insert({ user_id: uid, ...udharEntry });
+  if (error) throw error;
 };
 
 export const updateUdhar = async (uid, udharId, updates) => {
-  return supabase
+  const { error } = await supabase
     .from('udhar_list')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', udharId)
     .eq('user_id', uid);
+  if (error) throw error;
 };
 
 export const deleteUdhar = async (uid, udharId) => {
-  return supabase.from('udhar_list').delete().eq('id', udharId).eq('user_id', uid);
+  const { error } = await supabase.from('udhar_list').delete().eq('id', udharId).eq('user_id', uid);
+  if (error) throw error;
 };
