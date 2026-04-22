@@ -226,7 +226,6 @@ export default function BillConfirmPage() {
     const calcItemTotal = (item) => {
       const price = Number(item.price) || 0;
       const qty = Number(item.quantity) || 0;
-      if (item.unit === 'g' || item.unit === 'ml') return (qty / 1000) * price;
       return qty * price;
     };
 
@@ -237,7 +236,7 @@ export default function BillConfirmPage() {
           ${item.scientificName ? `<div style="font-size:10px;font-style:italic;color:#666;">${item.scientificName}</div>` : ''}
         </td>
         <td style="padding:8px 4px;text-align:center;vertical-align:top;border-bottom:1px solid #eee;">${item.quantity} ${item.unit || ''}</td>
-        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.price}${item.unit === 'g' ? '/kg' : item.unit === 'ml' ? '/ltr' : ''}</td>
+        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.price}</td>
         <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;font-weight:700;">&#8377;${calcItemTotal(item).toFixed(2)}</td>
       </tr>
     `).join('');
@@ -360,6 +359,19 @@ export default function BillConfirmPage() {
       const pdfBlob = pdf.output('blob');
       const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
+      const openWhatsApp = (text) => {
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        const a = document.createElement('a');
+        a.href = waUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+      const billSummary = `Bill #${billNumber} from ${freshShopName}\nCustomer: ${customerName || 'Guest'}\nTotal: ₹${total}`;
+
       const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
 
       if (canShareFiles) {
@@ -367,17 +379,13 @@ export default function BillConfirmPage() {
           await navigator.share({ files: [file], title: `Bill from ${freshShopName}` });
         } catch (err) {
           if (err?.name !== 'AbortError') {
-            // User didn't cancel — fallback to WhatsApp
             pdf.save(filename);
-            const waText = encodeURIComponent(`Bill #${billNumber} from ${freshShopName}\nCustomer: ${customerName || 'Guest'}\nTotal: ₹${total}`);
-            window.open(`https://wa.me/?text=${waText}`, '_blank');
+            openWhatsApp(billSummary);
           }
         }
       } else {
-        // No file sharing support — download PDF + open WhatsApp with bill summary
         pdf.save(filename);
-        const waText = encodeURIComponent(`Bill #${billNumber} from ${freshShopName}\nCustomer: ${customerName || 'Guest'}\nTotal: ₹${total}\n\nPlease find the attached PDF bill.`);
-        window.open(`https://wa.me/?text=${waText}`, '_blank');
+        openWhatsApp(billSummary + '\n\nPlease find the attached PDF bill.');
       }
 
     } catch (error) {

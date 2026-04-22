@@ -179,9 +179,7 @@ export default function AddProductPage() {
                   className="bg-transparent border-none w-full text-lg font-bold p-0 appearance-none focus:ring-0 text-on-surface pr-8"
                 >
                   <option value="pcs">{t('pcs')}</option>
-                  <option value="g">{t('g')}</option>
                   <option value="kg">{t('kg')}</option>
-                  <option value="ml">{t('ml')}</option>
                   <option value="ltr">{t('ltr')}</option>
                 </select>
                 <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>

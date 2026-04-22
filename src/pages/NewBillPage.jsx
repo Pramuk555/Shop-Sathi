@@ -185,11 +185,9 @@ export default function NewBillPage() {
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
-  // g and ml: price is stored per kg/liter, so convert quantity before multiplying
   const calcItemTotal = (item) => {
     const price = Number(item.price) || 0;
     const qty = Number(item.quantity) || 0;
-    if (item.unit === 'g' || item.unit === 'ml') return (qty / 1000) * price;
     return qty * price;
   };
 
@@ -318,12 +316,12 @@ export default function NewBillPage() {
                       />
                     </div>
                     <span className="text-[9px] text-on-surface-variant font-bold text-center mt-0.5">
-                      {item.unit === 'g' ? 'per kg' : item.unit === 'ml' ? 'per ltr' : `per ${item.unit}`}
+                      {`per ${item.unit}`}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-3 py-1">
                     <button 
-                      onClick={() => updateQuantity(item.id, (item.unit === 'g' || item.unit === 'ml') ? -100 : (item.unit === 'kg' || item.unit === 'ltr') ? -0.5 : -1)} 
+                      onClick={() => updateQuantity(item.id, (item.unit === 'kg' || item.unit === 'ltr') ? -0.5 : -1)}
                       className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all font-bold"
                     >
                       -
@@ -341,7 +339,7 @@ export default function NewBillPage() {
                       </span>
                     </div>
                     <button 
-                      onClick={() => updateQuantity(item.id, (item.unit === 'g' || item.unit === 'ml') ? 100 : (item.unit === 'kg' || item.unit === 'ltr') ? 0.5 : 1)} 
+                      onClick={() => updateQuantity(item.id, (item.unit === 'kg' || item.unit === 'ltr') ? 0.5 : 1)} 
                       className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all font-bold"
                     >
                       +
