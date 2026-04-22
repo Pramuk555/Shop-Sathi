@@ -445,15 +445,21 @@ export default function InventoryPage() {
                     {/* Pricing Bento Grid */}
                     <div className="grid grid-cols-3 gap-2 py-4 px-4 bg-surface-container-low rounded-xl">
                       <div className="text-center">
-                        <p className="text-[10px] uppercase text-outline font-bold">{t('selling_price')}</p>
+                        <p className="text-[10px] uppercase text-outline font-bold">
+                          {t('selling_price')}{item.unit === 'g' || item.unit === 'kg' ? '/kg' : item.unit === 'ml' || item.unit === 'ltr' ? '/ltr' : ''}
+                        </p>
                         <p className="font-headline text-lg text-on-surface">₹{item.sellingPrice}</p>
                       </div>
                       <div className="text-center border-x border-outline-variant/30">
-                        <p className="text-[10px] uppercase text-outline font-bold">{t('purchase_price')}</p>
+                        <p className="text-[10px] uppercase text-outline font-bold">
+                          {t('purchase_price')}{item.unit === 'g' || item.unit === 'kg' ? '/kg' : item.unit === 'ml' || item.unit === 'ltr' ? '/ltr' : ''}
+                        </p>
                         <p className="font-headline text-lg text-on-surface">₹{item.purchasePrice}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-[10px] uppercase text-primary font-bold">{t('profit_per_unit')}</p>
+                        <p className="text-[10px] uppercase text-primary font-bold">
+                          Profit{item.unit === 'g' || item.unit === 'kg' ? '/kg' : item.unit === 'ml' || item.unit === 'ltr' ? '/ltr' : '/unit'}
+                        </p>
                         <p className="font-headline text-lg text-primary">₹{item.profit}</p>
                       </div>
                     </div>
@@ -573,17 +579,21 @@ export default function InventoryPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-outline px-1 block mb-2">Purchase ₹</label>
-                      <input type="number" className="w-full h-14 px-5 bg-surface-container-low rounded-lg border-none focus:ring-2 focus:ring-primary font-bold transition-all" 
-                        placeholder="0"
+                      <label className="text-xs font-bold uppercase tracking-widest text-outline px-1 block mb-2">
+                        Purchase ₹{itemForm.unit === 'g' || itemForm.unit === 'kg' ? '/kg' : itemForm.unit === 'ml' || itemForm.unit === 'ltr' ? '/ltr' : ''}
+                      </label>
+                      <input type="number" className="w-full h-14 px-5 bg-surface-container-low rounded-lg border-none focus:ring-2 focus:ring-primary font-bold transition-all"
+                        placeholder={itemForm.unit === 'g' || itemForm.unit === 'kg' ? 'Price per kg' : itemForm.unit === 'ml' || itemForm.unit === 'ltr' ? 'Price per ltr' : '0'}
                         value={itemForm.purchasePrice}
                         onChange={(e) => setItemForm({...itemForm, purchasePrice: e.target.value})}
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-outline px-1 block mb-2">Selling ₹</label>
-                      <input type="number" className="w-full h-14 px-5 bg-surface-container-low rounded-lg border-none focus:ring-2 focus:ring-primary font-bold text-primary transition-all" 
-                        placeholder="0"
+                      <label className="text-xs font-bold uppercase tracking-widest text-outline px-1 block mb-2">
+                        Selling ₹{itemForm.unit === 'g' || itemForm.unit === 'kg' ? '/kg' : itemForm.unit === 'ml' || itemForm.unit === 'ltr' ? '/ltr' : ''}
+                      </label>
+                      <input type="number" className="w-full h-14 px-5 bg-surface-container-low rounded-lg border-none focus:ring-2 focus:ring-primary font-bold text-primary transition-all"
+                        placeholder={itemForm.unit === 'g' || itemForm.unit === 'kg' ? 'Price per kg' : itemForm.unit === 'ml' || itemForm.unit === 'ltr' ? 'Price per ltr' : '0'}
                         value={itemForm.sellingPrice}
                         onChange={(e) => setItemForm({...itemForm, sellingPrice: e.target.value})}
                       />
@@ -593,7 +603,9 @@ export default function InventoryPage() {
                   {/* Profit Banner */}
                   {(itemForm.purchasePrice && itemForm.sellingPrice) && (
                     <div className="bg-primary-fixed/30 p-4 rounded-xl flex justify-between items-center ring-1 ring-primary/10 animate-in zoom-in-95 duration-200">
-                      <span className="font-bold text-on-primary-fixed-variant">Profit per unit:</span>
+                      <span className="font-bold text-on-primary-fixed-variant">
+                        Profit {itemForm.unit === 'g' || itemForm.unit === 'kg' ? 'per kg' : itemForm.unit === 'ml' || itemForm.unit === 'ltr' ? 'per ltr' : 'per unit'}:
+                      </span>
                       <span className="font-headline text-2xl text-primary font-black">₹{Number(itemForm.sellingPrice) - Number(itemForm.purchasePrice)}</span>
                     </div>
                   )}

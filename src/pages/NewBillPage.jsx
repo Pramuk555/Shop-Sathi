@@ -185,7 +185,15 @@ export default function NewBillPage() {
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // g and ml: price is stored per kg/liter, so convert quantity before multiplying
+  const calcItemTotal = (item) => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.quantity) || 0;
+    if (item.unit === 'g' || item.unit === 'ml') return (qty / 1000) * price;
+    return qty * price;
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + calcItemTotal(item), 0);
   const gst = isGstEnabled ? subtotal * 0.18 : 0;
   const total = subtotal + gst;
 
@@ -299,14 +307,19 @@ export default function NewBillPage() {
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 bg-surface-container-high px-3 py-1 rounded-lg">
-                    <span className="text-on-surface-variant text-xs font-bold">₹</span>
-                    <input 
-                      type="number"
-                      className="w-16 bg-transparent border-none p-0 focus:ring-0 font-black text-primary text-xl"
-                      value={item.price}
-                      onChange={(e) => updatePrice(item.id, e.target.value)}
-                    />
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1 bg-surface-container-high px-3 py-1 rounded-lg">
+                      <span className="text-on-surface-variant text-xs font-bold">₹</span>
+                      <input
+                        type="number"
+                        className="w-16 bg-transparent border-none p-0 focus:ring-0 font-black text-primary text-xl"
+                        value={item.price}
+                        onChange={(e) => updatePrice(item.id, e.target.value)}
+                      />
+                    </div>
+                    <span className="text-[9px] text-on-surface-variant font-bold text-center mt-0.5">
+                      {item.unit === 'g' ? 'per kg' : item.unit === 'ml' ? 'per ltr' : `per ${item.unit}`}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-3 py-1">
                     <button 
@@ -337,7 +350,7 @@ export default function NewBillPage() {
                 </div>
                 <div className="mt-4 flex justify-between items-center text-sm font-bold border-t border-outline-variant/20 pt-3">
                   <span className="text-on-surface-variant">{t('subtotal')}:</span>
-                  <span className="text-lg text-on-surface">₹{item.price * item.quantity}</span>
+                  <span className="text-lg text-on-surface">₹{calcItemTotal(item).toFixed(2)}</span>
                 </div>
                 {Number(item.stock) < 10 && (
                   <p className="text-[10px] text-error font-black uppercase tracking-tighter mt-1 italic">⚠️ Only {item.stock} left!</p>

@@ -223,6 +223,13 @@ export default function BillConfirmPage() {
     const freshGstNumber = shopData.gstNumber || '';
 
     // Build item rows HTML
+    const calcItemTotal = (item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.quantity) || 0;
+      if (item.unit === 'g' || item.unit === 'ml') return (qty / 1000) * price;
+      return qty * price;
+    };
+
     const itemRowsHtml = items.map(item => `
       <tr>
         <td style="padding:8px 4px;vertical-align:top;border-bottom:1px solid #eee;">
@@ -230,8 +237,8 @@ export default function BillConfirmPage() {
           ${item.scientificName ? `<div style="font-size:10px;font-style:italic;color:#666;">${item.scientificName}</div>` : ''}
         </td>
         <td style="padding:8px 4px;text-align:center;vertical-align:top;border-bottom:1px solid #eee;">${item.quantity} ${item.unit || ''}</td>
-        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.price}</td>
-        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;font-weight:700;">&#8377;${item.price * item.quantity}</td>
+        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.price}${item.unit === 'g' ? '/kg' : item.unit === 'ml' ? '/ltr' : ''}</td>
+        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;font-weight:700;">&#8377;${calcItemTotal(item).toFixed(2)}</td>
       </tr>
     `).join('');
 
