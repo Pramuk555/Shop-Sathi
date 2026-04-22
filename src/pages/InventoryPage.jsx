@@ -175,13 +175,17 @@ export default function InventoryPage() {
 
     try {
       // Create data object for database (remove fields not in schema)
-      const { expiryDate, ...persistableData } = itemForm;
-      
       const newItem = {
-        ...persistableData,
+        name: itemForm.name,
+        scientificName: itemForm.scientificName || '',
+        unit: itemForm.unit || 'pcs',
+        purchasePrice: Number(itemForm.purchasePrice) || 0,
+        sellingPrice: Number(itemForm.sellingPrice) || 0,
+        stock: Number(itemForm.stock) || 0,
+        lowStockAlert: Number(itemForm.lowStockAlert) || 0,
         id: editingItem ? editingItem.id : 'prod_' + Date.now(),
         categoryId: selectedCategory?.id,
-        profit: Number(itemForm.sellingPrice) - Number(itemForm.purchasePrice),
+        profit: (Number(itemForm.sellingPrice) || 0) - (Number(itemForm.purchasePrice) || 0),
         pct: Math.min(100, (Number(itemForm.stock) / 100) * 100)
       };
 
