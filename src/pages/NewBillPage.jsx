@@ -9,6 +9,7 @@ export default function NewBillPage() {
   const { language, t } = useLanguage();
   const { currentUser } = useAuth();
   const [billLanguage, setBillLanguage] = useState(language);
+  const [isBillLangModalOpen, setIsBillLangModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isGstEnabled, setIsGstEnabled] = useState(() => {
     if (!currentUser || currentUser.demo) {
@@ -411,37 +412,71 @@ export default function NewBillPage() {
           </div>
         </div>
 
-        {/* Improved Billing Language Selector */}
-        <div className="flex items-center justify-between mb-6 bg-surface-container-high/50 p-3 rounded-2xl ring-1 ring-outline-variant/20 shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        {/* Billing Language Selector */}
+        <button
+          onClick={() => setIsBillLangModalOpen(true)}
+          className="w-full flex items-center justify-between bg-surface-container-high/50 p-4 rounded-2xl ring-1 ring-outline-variant/20 shadow-sm mb-6 active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="material-symbols-outlined text-primary text-lg">language</span>
             </div>
-            <div>
+            <div className="text-left">
               <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant block leading-none mb-1">{t('billing_language')}</span>
-              <span className="text-xs font-bold text-primary">{billLanguage === 'en' ? 'English' : billLanguage === 'hi' ? 'हिन्दी' : 'ಕನ್ನಡ'}</span>
+              <span className="text-sm font-bold text-primary">
+                {({'en':'English','hi':'हिन्दी','kn':'ಕನ್ನಡ','te':'తెలుగు','ta':'தமிழ்','ml':'മലയാളം','mr':'मराठी','gu':'ગુજરાતી'})[billLanguage] || 'English'}
+              </span>
             </div>
           </div>
-          <div className="flex bg-surface-container-highest rounded-xl p-1 gap-1">
-            {[
-              { id: 'en', label: 'EN' },
-              { id: 'hi', label: 'HI' },
-              { id: 'kn', label: 'KN' }
-            ].map(lang => (
+          <span className="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+        </button>
+
+        {/* Billing Language Modal */}
+        {isBillLangModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-end justify-center">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsBillLangModalOpen(false)}></div>
+            <div className="relative bg-surface w-full max-w-sm rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full duration-300 ring-1 ring-white/10">
+              <div className="w-12 h-1.5 bg-outline-variant/30 rounded-full mx-auto mb-8"></div>
+              <h3 className="font-headline text-2xl font-bold mb-6 text-on-surface tracking-tight text-center">{t('billing_language')}</h3>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                {[
+                  { id: 'en', name: 'English', sub: 'Default' },
+                  { id: 'hi', name: 'हिन्दी', sub: 'Hindi' },
+                  { id: 'kn', name: 'ಕನ್ನಡ', sub: 'Kannada' },
+                  { id: 'te', name: 'తెలుగు', sub: 'Telugu' },
+                  { id: 'ta', name: 'தமிழ்', sub: 'Tamil' },
+                  { id: 'ml', name: 'മലയാളം', sub: 'Malayalam' },
+                  { id: 'mr', name: 'मराठी', sub: 'Marathi' },
+                  { id: 'gu', name: 'ગુજરાતી', sub: 'Gujarati' }
+                ].map((lang) => (
+                  <button
+                    key={lang.id}
+                    onClick={() => { setBillLanguage(lang.id); setIsBillLangModalOpen(false); }}
+                    className={`w-full p-5 flex items-center justify-between rounded-2xl transition-all ${
+                      billLanguage === lang.id
+                        ? 'bg-primary-container text-on-primary-container ring-2 ring-primary'
+                        : 'bg-surface-container hover:bg-surface-container-high'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className="font-bold text-lg">{lang.name}</p>
+                      <p className="text-xs opacity-60 uppercase tracking-widest font-black">{lang.sub}</p>
+                    </div>
+                    {billLanguage === lang.id && (
+                      <span className="material-symbols-outlined text-primary">check_circle</span>
+                    )}
+                  </button>
+                ))}
+              </div>
               <button
-                key={lang.id}
-                onClick={() => setBillLanguage(lang.id)}
-                className={`w-12 h-10 rounded-lg text-xs font-black transition-all ${
-                  billLanguage === lang.id 
-                  ? 'bg-primary text-white shadow-md scale-105' 
-                  : 'text-on-surface-variant opacity-50 hover:opacity-100 hover:bg-surface-container-high'
-                }`}
+                onClick={() => setIsBillLangModalOpen(false)}
+                className="w-full mt-6 h-14 bg-surface-container-highest rounded-xl font-headline font-bold text-on-surface-variant active:scale-95 transition-transform"
               >
-                {lang.label}
+                {t('save')}
               </button>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
         <button 
           onClick={handleBillConfirmation}
           className="signature-gradient w-full h-16 rounded-full flex items-center justify-center gap-3 text-white font-headline text-xl font-black shadow-xl shadow-primary/30 active:scale-95 transition-all hover:shadow-primary/50"
