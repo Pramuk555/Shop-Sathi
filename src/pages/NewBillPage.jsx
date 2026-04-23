@@ -142,7 +142,7 @@ export default function NewBillPage() {
       updateBillingQty(product.id, newQty);
     } else {
       const billingUnit = product.unit || 'pcs';
-      const billingQty = 1;
+      const billingQty = isSubUnit(billingUnit) ? 100 : 1;
       setItems([...items, {
         ...product,
         name: product.name || 'Unknown',
@@ -345,17 +345,28 @@ export default function NewBillPage() {
                     <div className="flex flex-col items-center gap-1">
                       <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2">
                         <button
-                          onClick={() => updateBillingQty(item.id, Math.max(1, item.billingQty - 50))}
+                          onClick={() => updateBillingQty(item.id, Math.max(1, item.billingQty - 10))}
                           className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
                         >-</button>
                         <input
                           type="number"
-                          className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0"
+                          inputMode="numeric"
+                          className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           value={item.billingQty}
-                          onChange={(e) => updateBillingQty(item.id, e.target.value)}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || val === '0') return;
+                            updateBillingQty(item.id, val);
+                          }}
+                          onBlur={(e) => {
+                            if (!e.target.value || Number(e.target.value) < 1) {
+                              updateBillingQty(item.id, 1);
+                            }
+                          }}
                         />
                         <button
-                          onClick={() => updateBillingQty(item.id, item.billingQty + 50)}
+                          onClick={() => updateBillingQty(item.id, item.billingQty + 10)}
                           className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
                         >+</button>
                       </div>
