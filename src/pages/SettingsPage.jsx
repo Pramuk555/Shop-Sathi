@@ -399,7 +399,7 @@ export default function SettingsPage() {
           <div className="relative bg-surface w-full max-w-sm rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full duration-300 ring-1 ring-white/10">
             <div className="w-12 h-1.5 bg-outline-variant/30 rounded-full mx-auto mb-8"></div>
             <h3 className="font-headline text-2xl font-bold mb-6 text-on-surface tracking-tight text-center">{t('language')}</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
               {[
                 { id: 'en', name: 'English', sub: 'Default' },
                 { id: 'hi', name: 'हिन्दी', sub: 'Hindi' },
