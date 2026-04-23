@@ -16,6 +16,7 @@ export default function BillsHistoryPage() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBill, setSelectedBill] = useState(null);
+  const [dbError, setDbError] = useState(false);
   const [shopData, setShopData] = useState(() => {
     const defaultData = {
       name: 'ShopSaathi Store',
@@ -39,7 +40,7 @@ export default function BillsHistoryPage() {
       return;
     }
 
-    const unsubBills = dbService.subscribeBills(currentUser.uid, setBills);
+    const unsubBills = dbService.subscribeBills(currentUser.uid, setBills, () => setDbError(true));
     const unsubProfile = dbService.getShopProfile(currentUser.uid, (data) => {
       if (data) setShopData(data);
     });
@@ -57,6 +58,15 @@ export default function BillsHistoryPage() {
 
   return (
     <main className="max-w-[450px] mx-auto px-6 pt-8 pb-32 min-h-screen bg-surface page-transition-enter">
+      {dbError && (
+        <div className="bg-error-container text-on-error-container rounded-2xl p-4 flex items-center gap-3 mb-4">
+          <span className="material-symbols-outlined text-error text-2xl">cloud_off</span>
+          <div>
+            <p className="font-bold text-sm">Database unreachable</p>
+            <p className="text-xs opacity-70">Your Supabase project may be paused. Go to supabase.com → restore it, then refresh.</p>
+          </div>
+        </div>
+      )}
       <header className="flex items-center gap-4 mb-8">
         <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-surface-container-high transition-colors active:scale-95">
           <span className="material-symbols-outlined text-on-surface">arrow_back</span>

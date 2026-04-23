@@ -56,12 +56,15 @@ export const incrementBillNumber = async (uid) => {
 
 // --- Inventory (Products) ---
 
-export const subscribeInventory = (uid, callback) => {
+export const subscribeInventory = (uid, callback, onError) => {
   supabase
     .from('products')
     .select('*')
     .eq('user_id', uid)
-    .then(({ data }) => callback(data || []));
+    .then(({ data, error }) => {
+      if (error) { onError && onError(error); return; }
+      callback(data || []);
+    });
 
   const subscription = supabase
     .channel(`products:${uid}`)
@@ -149,13 +152,16 @@ export const deleteCategory = async (uid, categoryId) => {
 
 // --- Bills ---
 
-export const subscribeBills = (uid, callback) => {
+export const subscribeBills = (uid, callback, onError) => {
   supabase
     .from('bills')
     .select('*')
     .eq('user_id', uid)
     .order('date', { ascending: false })
-    .then(({ data }) => callback(data || []));
+    .then(({ data, error }) => {
+      if (error) { onError && onError(error); return; }
+      callback(data || []);
+    });
 
   const subscription = supabase
     .channel(`bills:${uid}`)

@@ -32,7 +32,8 @@ export default function InventoryPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'category'|'item', id, name }
   const [stockSearch, setStockSearch] = useState('');
   const [isListening, setIsListening] = useState(false);
-  
+  const [dbError, setDbError] = useState(false);
+
   // Category Form State
   const [newCatName, setNewCatName] = useState('');
 
@@ -60,7 +61,7 @@ export default function InventoryPage() {
 
     const unsubProds = dbService.subscribeInventory(currentUser.uid, (data) => {
       setProducts(data);
-    });
+    }, () => setDbError(true));
 
     return () => {
       unsubCats();
@@ -290,6 +291,15 @@ export default function InventoryPage() {
 
   return (
     <main className="px-6 pt-6 space-y-8 max-w-lg mx-auto safe-bottom-padding min-h-screen relative">
+      {dbError && (
+        <div className="bg-error-container text-on-error-container rounded-2xl p-4 flex items-center gap-3">
+          <span className="material-symbols-outlined text-error text-2xl">cloud_off</span>
+          <div>
+            <p className="font-bold text-sm">Database unreachable</p>
+            <p className="text-xs opacity-70">Your Supabase project may be paused. Go to supabase.com → restore your project, then refresh.</p>
+          </div>
+        </div>
+      )}
       {/* Header & Back Button Logic */}
       <section className="space-y-4">
         <div className="flex items-center gap-3">
