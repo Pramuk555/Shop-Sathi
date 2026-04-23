@@ -156,11 +156,11 @@ export default function NewBillPage() {
   };
 
   const updateBillingQty = (id, newQty) => {
-    const qty = Math.max(1, Number(newQty) || 1);
+    const qty = Math.max(0, Number(newQty) || 0);
     setItems(prev => prev.map(item => {
       if (item.id !== id) return item;
       const stockDed = isSubUnit(item.billingUnit) ? qty / 1000 : qty;
-      if (stockDed > Number(item.stock)) {
+      if (qty > 0 && stockDed > Number(item.stock)) {
         const avail = isSubUnit(item.billingUnit)
           ? `${Number(item.stock) * 1000}${item.billingUnit}`
           : `${item.stock} ${item.billingUnit}`;
@@ -353,17 +353,9 @@ export default function NewBillPage() {
                           inputMode="numeric"
                           className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           value={item.billingQty}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '' || val === '0') return;
-                            updateBillingQty(item.id, val);
-                          }}
-                          onBlur={(e) => {
-                            if (!e.target.value || Number(e.target.value) < 1) {
-                              updateBillingQty(item.id, 1);
-                            }
-                          }}
+                          onFocus={(e) => { e.target.select(); }}
+                          onChange={(e) => updateBillingQty(item.id, e.target.value === '' ? 0 : e.target.value)}
+                          onBlur={(e) => { if (!e.target.value || Number(e.target.value) < 1) updateBillingQty(item.id, 1); }}
                         />
                         <button
                           onClick={() => updateBillingQty(item.id, item.billingQty + 10)}
