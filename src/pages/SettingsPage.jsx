@@ -360,7 +360,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-medium text-primary">
-                {language === 'en' ? 'English' : language === 'hi' ? 'हिन्दी' : 'ಕನ್ನಡ'}
+                {({'en':'English','hi':'हिन्दी','kn':'ಕನ್ನಡ','te':'తెలుగు','ta':'தமிழ்','ml':'മലയാളം','mr':'मराठी','gu':'ગુજરાતી'})[language] || 'English'}
               </span>
               <span className="material-symbols-outlined">chevron_right</span>
             </div>
@@ -403,7 +403,12 @@ export default function SettingsPage() {
               {[
                 { id: 'en', name: 'English', sub: 'Default' },
                 { id: 'hi', name: 'हिन्दी', sub: 'Hindi' },
-                { id: 'kn', name: 'ಕನ್ನಡ', sub: 'Kannada' }
+                { id: 'kn', name: 'ಕನ್ನಡ', sub: 'Kannada' },
+                { id: 'te', name: 'తెలుగు', sub: 'Telugu' },
+                { id: 'ta', name: 'தமிழ்', sub: 'Tamil' },
+                { id: 'ml', name: 'മലയാളം', sub: 'Malayalam' },
+                { id: 'mr', name: 'मराठी', sub: 'Marathi' },
+                { id: 'gu', name: 'ગુજરાતી', sub: 'Gujarati' }
               ].map((lang) => (
                 <button
                   key={lang.id}
