@@ -94,8 +94,11 @@ export default function BillConfirmPage() {
           profit += itemProfit;
 
           if (item.id) {
+            const deduction = (item.billingUnit === 'g' || item.billingUnit === 'ml')
+              ? item.billingQty / 1000
+              : item.billingQty;
             await dbService.updateProduct(currentUser.uid, item.id, {
-              stock: Math.max(0, Number(item.stock) - item.quantity)
+              stock: Math.max(0, Number(item.stock) - deduction)
             });
           }
         }

@@ -127,72 +127,69 @@ export default function NewBillPage() {
     }
   };
 
+  // Unit helpers
+  const getSubUnit = (unit) => ({ kg: 'g', ltr: 'ml' }[unit] || null);
+  const isSubUnit = (unit) => unit === 'g' || unit === 'ml';
+  const calcItemPrice = (sellingPrice, qty, unit) =>
+    Math.ceil((Number(sellingPrice) || 0) * qty / (isSubUnit(unit) ? 1000 : 1));
+
   const addItem = (product) => {
     if (!product) return;
     const existing = items.find(i => i.id === product.id);
     if (existing) {
-      updateQuantity(product.id, 1);
+      const newQty = existing.billingQty + (isSubUnit(existing.billingUnit) ? 50 : 1);
+      updateBillingQty(product.id, newQty);
     } else {
-      setItems([...items, { 
-        ...product, 
-        quantity: 1, 
-        unit: product.unit || 'pcs',
-        price: Number(product.sellingPrice) || 0,
-        name: product.name || 'Unknown'
+      const billingUnit = product.unit || 'pcs';
+      const billingQty = 1;
+      setItems([...items, {
+        ...product,
+        name: product.name || 'Unknown',
+        billingUnit,
+        billingQty,
+        quantity: 1,
+        price: Math.ceil(Number(product.sellingPrice) || 0),
       }]);
     }
     setSearchQuery('');
   };
 
-  const updateQuantity = (id, delta) => {
+  const updateBillingQty = (id, newQty) => {
+    const qty = Math.max(1, Number(newQty) || 1);
     setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const currentQty = Number(item.quantity) || 0;
-        const newQty = Math.max(0, currentQty + delta);
-        // Check stock
-        if (newQty > Number(item.stock)) {
-          alert(`Only ${item.stock} in stock!`);
-          return item;
-        }
-        return { ...item, quantity: newQty };
+      if (item.id !== id) return item;
+      const stockDed = isSubUnit(item.billingUnit) ? qty / 1000 : qty;
+      if (stockDed > Number(item.stock)) {
+        const avail = isSubUnit(item.billingUnit)
+          ? `${Number(item.stock) * 1000}${item.billingUnit}`
+          : `${item.stock} ${item.billingUnit}`;
+        alert(`Only ${avail} in stock!`);
+        return item;
       }
-      return item;
+      return { ...item, billingQty: qty, price: calcItemPrice(item.sellingPrice, qty, item.billingUnit), quantity: 1 };
     }));
   };
 
-  const setInternalQuantity = (id, value) => {
+  const updateBillingUnit = (id, newUnit) => {
     setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = Number(value);
-        if (isNaN(newQty)) return item;
-        if (newQty > Number(item.stock)) {
-          alert(`Only ${item.stock} in stock!`);
-          return { ...item, quantity: Number(item.stock) };
-        }
-        return { ...item, quantity: newQty };
-      }
-      return item;
+      if (item.id !== id) return item;
+      const defaultQty = isSubUnit(newUnit) ? 100 : 1;
+      return {
+        ...item,
+        billingUnit: newUnit,
+        billingQty: defaultQty,
+        price: calcItemPrice(item.sellingPrice, defaultQty, newUnit),
+        quantity: 1,
+      };
     }));
-  };
-
-  const updatePrice = (id, newPrice) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, price: Number(newPrice) } : item
-    ));
   };
 
   const removeItem = (id) => {
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const calcItemTotal = (item) => {
-    const price = Number(item.price) || 0;
-    const qty = Number(item.quantity) || 0;
-    return qty * price;
-  };
-
-  const subtotal = items.reduce((sum, item) => sum + calcItemTotal(item), 0);
-  const gst = isGstEnabled ? subtotal * 0.18 : 0;
+  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+  const gst = isGstEnabled ? Math.ceil(subtotal * 0.18) : 0;
   const total = subtotal + gst;
 
   const handleBillConfirmation = () => {
@@ -293,68 +290,104 @@ export default function NewBillPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {items.map((item) => (
+            {items.map((item) => {
+              const subUnit = getSubUnit(item.unit);
+              const inSub = isSubUnit(item.billingUnit);
+              const stockLow = inSub
+                ? Number(item.stock) * 1000 < 500
+                : Number(item.stock) < 5;
+              const stockLabel = inSub
+                ? `${Number(item.stock) * 1000}${item.billingUnit}`
+                : `${item.stock} ${item.unit}`;
+              return (
               <div key={item.id} className="bg-surface-container-low rounded-xl p-5 shadow-sm border border-outline-variant/30 animate-in slide-in-from-bottom-2">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h4 className="font-bold text-lg text-on-surface">{item.name}</h4>
-                    <p className="text-xs text-on-surface-variant font-medium">{item.scientific}</p>
+                    <p className="text-xs text-on-surface-variant font-medium italic">{item.scientificName}</p>
                   </div>
                   <button onClick={() => removeItem(item.id)} className="text-error active:scale-95 transition-transform p-1">
                     <span className="material-symbols-outlined">delete</span>
                   </button>
                 </div>
+
+                {/* Unit toggle (only for kg/g and ltr/ml) */}
+                {subUnit && (
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => updateBillingUnit(item.id, item.unit)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-black transition-all ${!inSub ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}
+                    >
+                      {item.unit}
+                    </button>
+                    <button
+                      onClick={() => updateBillingUnit(item.id, subUnit)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-black transition-all ${inSub ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}
+                    >
+                      {subUnit}
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1 bg-surface-container-high px-3 py-1 rounded-lg">
-                      <span className="text-on-surface-variant text-xs font-bold">₹</span>
-                      <input
-                        type="number"
-                        className="w-16 bg-transparent border-none p-0 focus:ring-0 font-black text-primary text-xl"
-                        value={item.price}
-                        onChange={(e) => updatePrice(item.id, e.target.value)}
-                      />
+                  {/* Auto price display */}
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1 bg-primary/10 px-4 py-2 rounded-xl">
+                      <span className="text-primary font-black text-xl">₹</span>
+                      <span className="font-black text-primary text-2xl">{item.price}</span>
                     </div>
-                    <span className="text-[9px] text-on-surface-variant font-bold text-center mt-0.5">
-                      {`per ${item.unit}`}
-                    </span>
+                    <span className="text-[9px] text-on-surface-variant font-bold mt-1">AUTO PRICE</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-3 py-1">
-                    <button 
-                      onClick={() => updateQuantity(item.id, (item.unit === 'kg' || item.unit === 'ltr') ? -0.5 : -1)}
-                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all font-bold"
-                    >
-                      -
-                    </button>
-                    <div className="flex flex-col items-center">
-                      <input 
-                        type="number"
-                        step="any"
-                        className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0"
-                        value={item.quantity}
-                        onChange={(e) => setInternalQuantity(item.id, e.target.value)}
-                      />
-                      <span className="text-[10px] font-black text-primary/60 uppercase tracking-tighter leading-none mt-0.5">
-                        {t(item.unit) || item.unit}
-                      </span>
+
+                  {/* Quantity input */}
+                  {inSub ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2">
+                        <button
+                          onClick={() => updateBillingQty(item.id, Math.max(1, item.billingQty - 50))}
+                          className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
+                        >-</button>
+                        <input
+                          type="number"
+                          className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0"
+                          value={item.billingQty}
+                          onChange={(e) => updateBillingQty(item.id, e.target.value)}
+                        />
+                        <button
+                          onClick={() => updateBillingQty(item.id, item.billingQty + 50)}
+                          className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
+                        >+</button>
+                      </div>
+                      <span className="text-[10px] font-black text-primary/60 uppercase">{item.billingUnit}</span>
                     </div>
-                    <button 
-                      onClick={() => updateQuantity(item.id, (item.unit === 'kg' || item.unit === 'ltr') ? 0.5 : 1)} 
-                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 transition-all font-bold"
-                    >
-                      +
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2">
+                        <button
+                          onClick={() => updateBillingQty(item.id, Math.max(1, item.billingQty - 1))}
+                          className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
+                        >-</button>
+                        <span className="font-black text-on-surface text-lg w-8 text-center">{item.billingQty}</span>
+                        <button
+                          onClick={() => updateBillingQty(item.id, item.billingQty + 1)}
+                          className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
+                        >+</button>
+                      </div>
+                      <span className="text-[10px] font-black text-primary/60 uppercase">{item.billingUnit}</span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="mt-4 flex justify-between items-center text-sm font-bold border-t border-outline-variant/20 pt-3">
                   <span className="text-on-surface-variant">{t('subtotal')}:</span>
-                  <span className="text-lg text-on-surface">₹{calcItemTotal(item).toFixed(2)}</span>
+                  <span className="text-lg text-on-surface">₹{item.price}</span>
                 </div>
-                {Number(item.stock) < 10 && (
-                  <p className="text-[10px] text-error font-black uppercase tracking-tighter mt-1 italic">⚠️ Only {item.stock} left!</p>
+                {stockLow && (
+                  <p className="text-[10px] text-error font-black uppercase tracking-tighter mt-1 italic">⚠️ Only {stockLabel} left!</p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
