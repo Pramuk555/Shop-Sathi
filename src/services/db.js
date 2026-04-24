@@ -101,9 +101,10 @@ export const addProduct = async (uid, product) => {
 };
 
 export const updateProduct = async (uid, productId, updates) => {
+  const { id, ...safeUpdates } = updates;
   const { error } = await supabase
     .from('products')
-    .update({ ...sanitizeProduct(updates), updated_at: new Date().toISOString() })
+    .update({ ...safeUpdates, updated_at: new Date().toISOString() })
     .eq('id', productId)
     .eq('user_id', uid);
   if (error) throw error;
