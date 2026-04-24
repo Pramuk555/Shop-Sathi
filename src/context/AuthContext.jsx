@@ -63,6 +63,19 @@ export function AuthProvider({ children }) {
     return { user: data?.user, error };
   };
 
+  const sendMagicLink = async (email) => {
+    if (!isSupabaseConfigured || !supabase) {
+      const demoUser = { demo: true, email };
+      setCurrentUser(demoUser);
+      return { error: null };
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    });
+    return { error };
+  };
+
   const resetPassword = async (email) => {
     if (!isSupabaseConfigured || !supabase) return { error: null };
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -82,6 +95,7 @@ export function AuthProvider({ children }) {
     currentUser,
     signUp,
     signIn,
+    sendMagicLink,
     logout,
     resetPassword,
   };
