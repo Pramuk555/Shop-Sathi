@@ -352,7 +352,7 @@ export default function NewBillPage() {
                           type="number"
                           inputMode="numeric"
                           className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          value={item.billingQty}
+                          value={item.billingQty === 0 ? '' : item.billingQty}
                           onFocus={(e) => { e.target.select(); }}
                           onChange={(e) => updateBillingQty(item.id, e.target.value === '' ? 0 : e.target.value)}
                           onBlur={(e) => { if (!e.target.value || Number(e.target.value) < 1) updateBillingQty(item.id, 1); }}
@@ -379,7 +379,7 @@ export default function NewBillPage() {
                           type="number"
                           inputMode="decimal"
                           className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          value={item.billingQty}
+                          value={item.billingQty === 0 ? '' : item.billingQty}
                           onFocus={(e) => e.target.select()}
                           onChange={(e) => updateBillingQty(item.id, e.target.value === '' ? 0 : e.target.value)}
                           onBlur={(e) => { if (!e.target.value || Number(e.target.value) <= 0) updateBillingQty(item.id, 1); }}
