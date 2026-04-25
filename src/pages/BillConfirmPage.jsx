@@ -226,11 +226,7 @@ export default function BillConfirmPage() {
     const freshGstNumber = shopData.gstNumber || '';
 
     // Build item rows HTML
-    const calcItemTotal = (item) => {
-      const price = Number(item.price) || 0;
-      const qty = Number(item.quantity) || 0;
-      return qty * price;
-    };
+    const calcItemTotal = (item) => Number(item.price) || 0;
 
     const itemRowsHtml = items.map(item => `
       <tr>
@@ -238,9 +234,9 @@ export default function BillConfirmPage() {
           <div style="font-weight:700;font-size:13px;">${item.name}</div>
           ${item.scientificName ? `<div style="font-size:10px;font-style:italic;color:#666;">${item.scientificName}</div>` : ''}
         </td>
-        <td style="padding:8px 4px;text-align:center;vertical-align:top;border-bottom:1px solid #eee;">${item.quantity} ${item.unit || ''}</td>
-        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.price}</td>
-        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;font-weight:700;">&#8377;${calcItemTotal(item).toFixed(2)}</td>
+        <td style="padding:8px 4px;text-align:center;vertical-align:top;border-bottom:1px solid #eee;">${item.billingQty} ${item.billingUnit || item.unit || ''}</td>
+        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.sellingPrice}/${item.unit || ''}</td>
+        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;font-weight:700;">&#8377;${calcItemTotal(item)}</td>
       </tr>
     `).join('');
 
@@ -557,9 +553,9 @@ export default function BillConfirmPage() {
                           <div style={{ fontWeight: 'bold' }}>{item.name}</div>
                           {item.scientificName && <div style={{ fontSize: '10px', fontStyle: 'italic', opacity: 0.8 }}>{item.scientificName}</div>}
                         </td>
-                        <td style={{ textAlign: 'center' }}>{item.quantity} {item.unit || ''}</td>
+                        <td style={{ textAlign: 'center' }}>{item.billingQty} {item.billingUnit || item.unit || ''}</td>
+                        <td style={{ textAlign: 'right' }}>₹{item.sellingPrice}/{item.unit || ''}</td>
                         <td style={{ textAlign: 'right' }}>₹{item.price}</td>
-                        <td style={{ textAlign: 'right' }}>₹{item.price * item.quantity}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -615,8 +611,8 @@ export default function BillConfirmPage() {
                     <div key={idx} className="item-row">
                       <div style={{ fontWeight: 'bold' }}>{item.name.toUpperCase()}</div>
                       <div className="item-detail">
-                        <span>{item.quantity} {item.unit || ''} x {item.price}</span>
-                        <span>₹{item.price * item.quantity}.00</span>
+                        <span>{item.billingQty} {item.billingUnit || item.unit || ''} x ₹{item.sellingPrice}/{item.unit || ''}</span>
+                        <span>₹{item.price}</span>
                       </div>
                     </div>
                   ))}
@@ -683,9 +679,9 @@ export default function BillConfirmPage() {
           {items.map(item => (
             <div key={item.id} className="flex justify-between text-sm items-center">
               <span className="text-on-surface-variant font-medium">
-                {item.name} <span className="text-[10px] opacity-70">({t(item.unit) || item.unit})</span> × {item.quantity}
+                {item.name} <span className="text-[10px] opacity-70">({item.billingQty} {item.billingUnit || item.unit})</span>
               </span>
-              <span className="font-bold">₹{(item.price * item.quantity).toLocaleString()}</span>
+              <span className="font-bold">₹{item.price.toLocaleString()}</span>
             </div>
           ))}
         </div>
