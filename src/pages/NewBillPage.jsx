@@ -368,12 +368,28 @@ export default function NewBillPage() {
                     <div className="flex flex-col items-center gap-1">
                       <div className="flex items-center gap-2 bg-surface-container-highest rounded-full px-4 py-2">
                         <button
-                          onClick={() => updateBillingQty(item.id, Math.max(1, item.billingQty - 1))}
+                          onClick={() => {
+                            const step = (item.billingUnit === 'kg' || item.billingUnit === 'ltr') ? 0.5 : 1;
+                            const next = Math.round((item.billingQty - step) * 100) / 100;
+                            updateBillingQty(item.id, Math.max(0, next));
+                          }}
                           className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
                         >-</button>
-                        <span className="font-black text-on-surface text-lg w-8 text-center">{item.billingQty}</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          className="font-black text-on-surface text-lg w-16 text-center bg-transparent border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          value={item.billingQty}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => updateBillingQty(item.id, e.target.value === '' ? 0 : e.target.value)}
+                          onBlur={(e) => { if (!e.target.value || Number(e.target.value) <= 0) updateBillingQty(item.id, 1); }}
+                        />
                         <button
-                          onClick={() => updateBillingQty(item.id, item.billingQty + 1)}
+                          onClick={() => {
+                            const step = (item.billingUnit === 'kg' || item.billingUnit === 'ltr') ? 0.5 : 1;
+                            const next = Math.round((item.billingQty + step) * 100) / 100;
+                            updateBillingQty(item.id, next);
+                          }}
                           className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary shadow-sm active:scale-90 font-bold"
                         >+</button>
                       </div>
