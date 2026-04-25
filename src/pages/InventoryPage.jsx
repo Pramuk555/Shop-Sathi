@@ -70,9 +70,9 @@ export default function InventoryPage() {
   }, [currentUser]);
 
   // Derived Values
-  const totalItems = products.length;
-  const lowStockItems = products.filter(p => Number(p.stock) <= Number(p.lowStockAlert)).length;
   const filteredProducts = products.filter(p => p.categoryId === selectedCategory?.id);
+  const totalItems = view === 'items' ? filteredProducts.length : products.length;
+  const lowStockItems = (view === 'items' ? filteredProducts : products).filter(p => Number(p.stock) <= Number(p.lowStockAlert)).length;
 
   // Search-filtered categories (show categories that contain matching products)
   const filteredCategories = useMemo(() => {
