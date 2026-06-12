@@ -1,4 +1,11 @@
-<svg xmlns="http://www.svg.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="48" fill="#a3f69c" />
-  <path d="M125 73.07l-20.64-12.4a8 8 0 0 0-8.24 0L75 73.07V61.16a8 8 0 0 0-8.24 0L47 73.07v94.16c0 4.32 3.04 7.92 7.2 0.8l64 39.04c2.4 1.44 5.6 1.44 8 0l64-39.04c4.16-2.48 7.2-6.88 7.2-11.2V73.07zm-72 116.32l-56-34.16V77.84l56 34.16v60.88zm8-60.88l56-34.16v60.88l-56 34.16v-60.88z" fill="#0d631b" transform="scale(0.8) translate(24, 24)" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="42" fill="#00490e"/>
+  <rect x="52" y="100" width="88" height="58" rx="4" fill="#a3f69c"/>
+  <rect x="76" y="112" width="20" height="24" rx="3" fill="#00490e"/>
+  <rect x="96" y="112" width="20" height="24" rx="3" fill="#00490e"/>
+  <path d="M44 100 L54 68 h84 l10 32Z" fill="#88d982"/>
+  <rect x="44" y="96" width="104" height="8" rx="2" fill="#00490e"/>
+  <rect x="60" y="112" width="16" height="14" rx="2" fill="#00490e"/>
+  <rect x="116" y="112" width="16" height="14" rx="2" fill="#00490e"/>
+  <rect x="84" y="126" width="24" height="32" rx="2" fill="#00490e"/>
 </svg>
