@@ -26,13 +26,20 @@ export default function LoginPage() {
     setError('');
     setSuccessMsg('');
 
-    if (!email || !password) {
-      setError('Please enter your email and password.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
+    if (isResetMode) {
+      if (!email) {
+        setError('Please enter your email.');
+        return;
+      }
+    } else {
+      if (!email || !password) {
+        setError('Please enter your email and password.');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters.');
+        return;
+      }
     }
 
     setLoading(true);

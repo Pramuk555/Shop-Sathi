@@ -91,9 +91,9 @@ export default function UdharPage() {
 
     const newUdharData = editingUdhar ? {
       name, phone, amount,
-      remainingAmount: amount - editingUdhar.paidAmount,
+      remainingAmount: amount - (editingUdhar.paidAmount || 0),
       description, dueDate, type,
-      status: (amount - editingUdhar.paidAmount) <= 0 ? 'paid' : (editingUdhar.paidAmount > 0 ? 'partial' : 'pending')
+      status: (amount - (editingUdhar.paidAmount || 0)) <= 0 ? 'paid' : ((editingUdhar.paidAmount || 0) > 0 ? 'partial' : 'pending')
     } : {
       type, name, phone, amount,
       paidAmount: 0,
@@ -195,8 +195,15 @@ export default function UdharPage() {
   };
 
   const getDaysAgo = (dateStr) => {
-    const [day, month, year] = dateStr.split('/').map(Number);
-    const date = new Date(year, month - 1, day);
+    if (!dateStr) return '';
+    let date;
+    if (dateStr.includes('T') || (dateStr.includes('-') && !dateStr.includes('/'))) {
+      date = new Date(dateStr);
+    } else {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      date = new Date(year, month - 1, day);
+    }
+    if (isNaN(date.getTime())) return '';
     const diff = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
     return diff === 0 ? 'Today' : `${diff} days ago`;
   };

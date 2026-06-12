@@ -20,6 +20,7 @@ export default function AddProductPage() {
     const initial = {
       name: '',
       price: '',
+      purchasePrice: '',
       stock: '',
       categoryId: '',
       unit: 'pcs',
@@ -63,7 +64,7 @@ export default function AddProductPage() {
       scientificName: '',
       categoryId: product.categoryId || null,
       sellingPrice: Number(product.price),
-      purchasePrice: 0,
+      purchasePrice: Number(product.purchasePrice) || 0,
       stock: Number(product.stock),
       unit: product.unit,
       lowStockAlert: 5,
@@ -144,9 +145,9 @@ export default function AddProductPage() {
               <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">{t('selling_price')}</label>
               <div className="bg-surface-container-high rounded-2xl p-4 flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm">
                 <span className="text-primary font-bold">₹</span>
-                <input 
-                  type="number" 
-                  required 
+                <input
+                  type="number"
+                  required
                   placeholder="0"
                   className="bg-transparent border-none w-full text-lg font-bold p-0 focus:ring-0 text-on-surface"
                   value={product.price}
@@ -155,17 +156,31 @@ export default function AddProductPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">Stock</label>
-              <div className="bg-surface-container-high rounded-2xl p-4 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm">
-                <input 
-                  type="number" 
-                  required 
+              <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">Purchase Price</label>
+              <div className="bg-surface-container-high rounded-2xl p-4 flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm">
+                <span className="text-on-surface-variant font-bold">₹</span>
+                <input
+                  type="number"
                   placeholder="0"
                   className="bg-transparent border-none w-full text-lg font-bold p-0 focus:ring-0 text-on-surface"
-                  value={product.stock}
-                  onChange={e => setProduct({...product, stock: e.target.value})}
+                  value={product.purchasePrice}
+                  onChange={e => setProduct({...product, purchasePrice: e.target.value})}
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase tracking-widest text-on-surface-variant px-2">Stock</label>
+            <div className="bg-surface-container-high rounded-2xl p-4 focus-within:ring-2 focus-within:ring-primary transition-all shadow-sm">
+              <input
+                type="number"
+                required
+                placeholder="0"
+                className="bg-transparent border-none w-full text-lg font-bold p-0 focus:ring-0 text-on-surface"
+                value={product.stock}
+                onChange={e => setProduct({...product, stock: e.target.value})}
+              />
             </div>
           </div>
 

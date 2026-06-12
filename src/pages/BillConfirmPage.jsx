@@ -90,7 +90,8 @@ export default function BillConfirmPage() {
         
         // 2. Prepare bill and update stock
         for (const item of items) {
-          const itemProfit = (Number(item.price) - Number(item.purchasePrice || 0)) * item.quantity;
+          const qty = item.billingQty || 1;
+          const itemProfit = Number(item.price) - (Number(item.purchasePrice || 0) * qty);
           profit += itemProfit;
 
           if (item.id) {
@@ -142,8 +143,10 @@ export default function BillConfirmPage() {
         const updatedProducts = products.map(p => {
           const billItem = items.find(item => item.id === p.id);
           if (billItem) {
-            totalPurchasePrice += (Number(p.purchasePrice || 0) * billItem.quantity);
-            return { ...p, stock: Math.max(0, Number(p.stock) - billItem.quantity) };
+            const qty = billItem.billingQty || 1;
+            const deduction = (billItem.billingUnit === 'g' || billItem.billingUnit === 'ml') ? qty / 1000 : qty;
+            totalPurchasePrice += (Number(p.purchasePrice || 0) * qty);
+            return { ...p, stock: Math.max(0, Number(p.stock) - deduction) };
           }
           return p;
         });

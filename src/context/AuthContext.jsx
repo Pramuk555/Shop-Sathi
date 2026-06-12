@@ -11,6 +11,10 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     if (!isSupabaseConfigured || !supabase) {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!isLocalhost) {
+        return { demo: true, email: 'demo@shopsaathi.app', configError: true };
+      }
       return { demo: true, email: 'demo@shopsaathi.app' };
     }
     return null;
