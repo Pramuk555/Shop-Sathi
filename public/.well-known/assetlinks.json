@@ -2,7 +2,7 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.shopsaathi.twa",
-    "sha256_cert_fingerprints": ["PASTE_SHA256_FROM_PWABUILDER_HERE"]
+    "package_name": "co.in.shopsathi.twa",
+    "sha256_cert_fingerprints": ["17:99:6C:ED:74:0B:6F:52:E5:61:02:55:E6:B3:85:E5:13:2F:31:18:EA:9B:F2:63:38:99:67:CC:5C:8A:23:06"]
   }
 }]
