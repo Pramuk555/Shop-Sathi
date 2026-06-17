@@ -141,23 +141,17 @@ export default function NewBillPage() {
 
   const addItem = (product) => {
     if (!product) return;
-    const existing = items.find(i => i.id === product.id);
-    if (existing) {
-      const newQty = existing.billingQty + (isSubUnit(existing.billingUnit) ? 50 : 1);
-      updateBillingQty(product.id, newQty);
-    } else {
-      const billingUnit = product.unit || 'pcs';
-      const billingQty = isSubUnit(billingUnit) ? 100 : 1;
-      setItems([...items, {
-        ...product,
-        name: product.name || 'Unknown',
-        billingUnit,
-        billingQty,
-        quantity: 1,
-        price: Math.ceil(Number(product.sellingPrice) || 0),
-      }]);
-    }
     setSearchQuery('');
+    // Always open the add/edit modal — never silently add
+    const existing = items.find(i => i.id === product.id);
+    const billingUnit = existing ? existing.billingUnit : (product.unit || 'pcs');
+    const billingQty = existing ? existing.billingQty : (isSubUnit(billingUnit) ? 100 : 1);
+    const baseItem = existing || { ...product, name: product.name || 'Unknown', billingUnit, billingQty, price: calcItemPrice(product.sellingPrice, billingQty, billingUnit) };
+    setEditingItem({ ...baseItem, _isNew: !existing });
+    setEditUnit(billingUnit);
+    setEditQty(String(billingQty));
+    setEditCustomPrice(String(baseItem.price));
+    setEditUseCustom(false);
   };
 
   const updateBillingQty = (id, newQty) => {
@@ -212,15 +206,18 @@ export default function NewBillPage() {
     const unit = editUnit;
     const autoPrice = calcItemPrice(editingItem.sellingPrice, qty, unit);
     const finalPrice = editUseCustom ? (Math.max(0, Number(editCustomPrice) || 0)) : autoPrice;
-    setItems(prev => prev.map(item => {
-      if (item.id !== editingItem.id) return item;
-      const stockDed = isSubUnit(unit) ? qty / 1000 : qty;
-      if (stockDed > Number(item.stock)) {
-        alert(`Only ${isSubUnit(unit) ? Number(item.stock)*1000+unit : item.stock+' '+item.unit} in stock!`);
-        return item;
-      }
-      return { ...item, billingUnit: unit, billingQty: qty, price: finalPrice, quantity: 1 };
-    }));
+    const stockDed = isSubUnit(unit) ? qty / 1000 : qty;
+    if (stockDed > Number(editingItem.stock)) {
+      alert(`Only ${isSubUnit(unit) ? Number(editingItem.stock)*1000+unit : editingItem.stock+' '+editingItem.unit} in stock!`);
+      return;
+    }
+    if (editingItem._isNew) {
+      setItems(prev => [...prev, { ...editingItem, _isNew: undefined, billingUnit: unit, billingQty: qty, price: finalPrice, quantity: 1 }]);
+    } else {
+      setItems(prev => prev.map(item =>
+        item.id === editingItem.id ? { ...item, billingUnit: unit, billingQty: qty, price: finalPrice, quantity: 1 } : item
+      ));
+    }
     closeEdit();
   };
 
@@ -316,19 +313,18 @@ export default function NewBillPage() {
           {searchResults.length > 0 && (
             <div className="absolute top-[105%] left-0 right-0 bg-surface border border-outline-variant rounded-xl shadow-2xl overflow-hidden z-[70] animate-in fade-in slide-in-from-top-2">
               {searchResults.map((p) => (
-                <button 
+                <button
                   key={p.id}
                   onClick={() => addItem(p)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors border-b border-outline-variant last:border-0"
+                  className="w-full p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors border-b border-outline-variant last:border-0 active:bg-surface-container"
                 >
                   <div className="text-left">
-                    <p className="text-xs font-bold text-secondary uppercase tracking-tighter">📁 {p.categoryName}</p>
                     <p className="font-bold text-on-surface">{p.name}</p>
-                    <p className="text-xs text-on-surface-variant italic">{p.scientificName}</p>
+                    <p className="text-xs text-on-surface-variant">{p.unit} · {t('stock')}: {p.stock}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-primary">₹{p.sellingPrice}</p>
-                    <p className={`text-[10px] font-bold ${Number(p.stock) < 10 ? 'text-error' : 'text-outline'}`}>{t('stock')}: {p.stock}</p>
+                    <p className="font-black text-primary text-base">₹{p.sellingPrice}/{p.unit}</p>
+                    {Number(p.stock) < 5 && <p className="text-[10px] font-bold text-error">Low stock</p>}
                   </div>
                 </button>
               ))}
@@ -361,7 +357,7 @@ export default function NewBillPage() {
                 {/* Row 1: name + actions */}
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1 min-w-0 pr-2">
-                    <h4 className="font-bold text-base text-on-surface leading-tight truncate">{item.name}</h4>
+                    <h4 className="font-bold text-sm text-on-surface leading-tight truncate">{item.name}</h4>
                     <p className="text-[10px] text-on-surface-variant/70 font-semibold">{getRateLabel(item)}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -504,110 +500,109 @@ export default function NewBillPage() {
           </div>
         )}
       </footer>
-      {/* ── Edit Item Modal ── */}
+      {/* ── Add / Edit Item Modal ── */}
       {editingItem && (() => {
         const subUnit = getSubUnit(editingItem.unit);
         const inSub = isSubUnit(editUnit);
         const autoPrice = calcItemPrice(editingItem.sellingPrice, Number(editQty) || 0, editUnit);
-        const presets = getPresets(editUnit);
+        const finalPrice = editUseCustom ? (Number(editCustomPrice) || 0) : autoPrice;
+        const isNew = editingItem._isNew;
+        const step = inSub ? 50 : (editUnit === 'kg' || editUnit === 'ltr') ? 0.25 : 1;
+        const minQty = inSub ? 50 : step;
         return (
           <div className="fixed inset-0 z-[200] flex items-end justify-center">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEdit} />
-            <div className="relative bg-surface w-full max-w-[450px] rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom-full duration-300 p-5 space-y-4">
-              {/* Handle */}
-              <div className="w-10 h-1 bg-outline-variant/40 rounded-full mx-auto" />
-
-              {/* Title */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-headline text-lg font-bold text-on-surface">{editingItem.name}</h3>
-                  <p className="text-xs text-on-surface-variant">{getRateLabel(editingItem)} — tap a preset or type qty</p>
-                </div>
-                <button onClick={closeEdit} className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                  <span className="material-symbols-outlined text-lg">close</span>
+            <div className="relative bg-white w-full max-w-[450px] rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom-full duration-300 overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                <h3 className="font-headline text-xl font-bold text-gray-900">{isNew ? 'Add Item' : 'Edit'}</h3>
+                <button onClick={closeEdit} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-transform">
+                  <span className="material-symbols-outlined text-xl">close</span>
                 </button>
               </div>
 
-              {/* Unit toggle */}
-              {subUnit && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setEditUnit(editingItem.unit); setEditQty(isSubUnit(editUnit) ? String(Math.round(Number(editQty)/1000*100)/100) : editQty); }}
-                    className={`flex-1 py-2 rounded-xl text-sm font-black transition-all ${!inSub ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}
-                  >{editingItem.unit}</button>
-                  <button
-                    onClick={() => { setEditUnit(subUnit); setEditQty(String(Math.round(Number(editQty)*1000))); }}
-                    className={`flex-1 py-2 rounded-xl text-sm font-black transition-all ${inSub ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}
-                  >{subUnit}</button>
+              <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* Item name — read only */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-1 block">ITEM NAME</label>
+                  <div className="bg-gray-50 rounded-xl px-4 py-3 text-base font-bold text-gray-900">{editingItem.name}</div>
                 </div>
-              )}
 
-              {/* Quantity input */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Quantity</label>
-                {/* Presets */}
-                <div className="flex gap-2">
-                  {presets.map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setEditQty(String(p))}
-                      className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border ${String(editQty) === String(p) ? 'bg-primary text-white border-primary' : 'bg-surface-container-high text-on-surface border-outline-variant/30'}`}
-                    >{p}{editUnit}</button>
-                  ))}
-                </div>
-                {/* Stepper input */}
-                <div className="flex items-center gap-2 bg-surface-container-high rounded-2xl px-4 py-2">
-                  <button
-                    onClick={() => {
-                      const step = inSub ? 50 : (editUnit==='kg'||editUnit==='ltr') ? 0.25 : 1;
-                      setEditQty(String(Math.max(inSub?50:0.25, Math.round((Number(editQty)-step)*100)/100)));
-                    }}
-                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm font-bold text-xl active:scale-90"
-                  >−</button>
-                  <input
-                    type="number"
-                    inputMode={inSub ? 'numeric' : 'decimal'}
-                    className="flex-1 text-center font-black text-2xl text-on-surface bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    value={editQty}
-                    onChange={(e) => setEditQty(e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                  />
-                  <span className="text-sm font-bold text-on-surface-variant w-8 text-center">{editUnit}</span>
-                  <button
-                    onClick={() => {
-                      const step = inSub ? 50 : (editUnit==='kg'||editUnit==='ltr') ? 0.25 : 1;
-                      setEditQty(String(Math.round((Number(editQty)+step)*100)/100));
-                    }}
-                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm font-bold text-xl active:scale-90"
-                  >+</button>
-                </div>
-              </div>
-
-              {/* Price preview + custom override */}
-              <div className="bg-surface-container-low rounded-2xl p-3 space-y-2">
-                <div className="flex items-center justify-between">
+                {/* Unit selector */}
+                {subUnit ? (
                   <div>
-                    <p className="text-xs text-on-surface-variant font-medium">
-                      {getRateLabel(editingItem)} × {editQty}{editUnit}
-                    </p>
-                    <p className="font-headline text-2xl font-black text-primary">₹{editUseCustom ? (Number(editCustomPrice)||0) : autoPrice}</p>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-1 block">UNIT</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setEditUnit(editingItem.unit); setEditQty(inSub ? String(Math.round(Number(editQty)/1000*100)/100) : editQty); }}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-black border transition-all ${!inSub ? 'border-[#0d631b] bg-[#0d631b] text-white' : 'border-gray-200 bg-white text-gray-600'}`}
+                      >{editingItem.unit}</button>
+                      <button
+                        onClick={() => { setEditUnit(subUnit); setEditQty(String(Math.round(Number(editQty)*1000))); }}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-black border transition-all ${inSub ? 'border-[#0d631b] bg-[#0d631b] text-white' : 'border-gray-200 bg-white text-gray-600'}`}
+                      >{subUnit}</button>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Auto price</p>
+                ) : (
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-1 block">UNIT</label>
+                    <div className="bg-gray-50 rounded-xl px-4 py-3 text-base font-semibold text-gray-700">{editingItem.unit || 'pcs'}</div>
+                  </div>
+                )}
+
+                {/* Quantity */}
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-1 block">QUANTITY</label>
+                  <div className="flex items-center border-2 border-[#0d631b] rounded-xl overflow-hidden bg-white">
                     <button
-                      onClick={() => { setEditUseCustom(!editUseCustom); if (!editUseCustom) setEditCustomPrice(String(autoPrice)); }}
-                      className={`text-xs font-black px-3 py-1 rounded-full transition-all ${editUseCustom ? 'bg-secondary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}
-                    >{editUseCustom ? 'Custom ✓' : 'Override'}</button>
+                      onClick={() => setEditQty(String(Math.max(minQty, Math.round((Number(editQty) - step) * 100) / 100)))}
+                      className="w-12 h-12 flex items-center justify-center text-[#0d631b] font-bold text-xl active:bg-green-50 transition-colors"
+                    >−</button>
+                    <input
+                      type="number"
+                      inputMode={inSub ? 'numeric' : 'decimal'}
+                      className="flex-1 text-center font-black text-xl text-gray-900 bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      value={editQty}
+                      onChange={(e) => setEditQty(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <span className="text-sm font-bold text-gray-500 pr-2">{editUnit}</span>
+                    <button
+                      onClick={() => setEditQty(String(Math.round((Number(editQty) + step) * 100) / 100))}
+                      className="w-12 h-12 flex items-center justify-center text-[#0d631b] font-bold text-xl active:bg-green-50 transition-colors"
+                    >+</button>
                   </div>
+                  {/* Quick presets */}
+                  <div className="flex gap-2 mt-2">
+                    {getPresets(editUnit).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setEditQty(String(p))}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-black border transition-all ${String(editQty) === String(p) ? 'bg-[#0d631b] text-white border-[#0d631b]' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
+                      >{p}{editUnit}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rate display */}
+                <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">{getRateLabel(editingItem)} × {editQty}{editUnit}</p>
+                    <p className="text-2xl font-black text-[#0d631b]">₹{finalPrice}</p>
+                  </div>
+                  <button
+                    onClick={() => { setEditUseCustom(!editUseCustom); if (!editUseCustom) setEditCustomPrice(String(autoPrice)); }}
+                    className={`text-xs font-black px-3 py-1.5 rounded-full border transition-all ${editUseCustom ? 'bg-[#0d631b] text-white border-[#0d631b]' : 'bg-white text-gray-600 border-gray-300'}`}
+                  >{editUseCustom ? 'Custom ✓' : 'Override Price'}</button>
                 </div>
                 {editUseCustom && (
-                  <div className="flex items-center gap-2 bg-surface-container-high rounded-xl px-3 py-2">
-                    <span className="text-secondary font-black">₹</span>
+                  <div className="flex items-center gap-2 bg-gray-50 border-2 border-[#0d631b] rounded-xl px-4 py-2">
+                    <span className="text-[#0d631b] font-black text-lg">₹</span>
                     <input
                       type="number"
                       inputMode="numeric"
-                      className="flex-1 font-black text-xl text-on-surface bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="Enter price"
+                      className="flex-1 font-black text-xl text-gray-900 bg-transparent border-none focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder="Enter custom price"
                       value={editCustomPrice}
                       onChange={(e) => setEditCustomPrice(e.target.value)}
                       onFocus={(e) => e.target.select()}
@@ -617,13 +612,13 @@ export default function NewBillPage() {
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 pt-1">
-                <button onClick={closeEdit} className="flex-1 h-12 rounded-full bg-surface-container-high font-bold text-on-surface-variant active:scale-95 transition-transform">
+              {/* Footer actions */}
+              <div className="flex gap-3 px-5 py-4 border-t border-gray-100 bg-white">
+                <button onClick={closeEdit} className="flex-1 h-12 rounded-full bg-gray-100 font-bold text-gray-600 active:scale-95 transition-transform text-sm">
                   Cancel
                 </button>
-                <button onClick={applyEdit} className="flex-[2] h-12 rounded-full signature-gradient font-headline font-bold text-white shadow-lg active:scale-95 transition-transform">
-                  Update Item
+                <button onClick={applyEdit} className="flex-[2] h-12 rounded-full bg-[#0d631b] font-headline font-bold text-white shadow-lg active:scale-95 transition-transform text-sm">
+                  {isNew ? 'Add to Bill' : 'Update Item'}
                 </button>
               </div>
             </div>
