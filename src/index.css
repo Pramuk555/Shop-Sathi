@@ -8,7 +8,7 @@
     color: #191c1d;
     font-family: 'Lexend', sans-serif;
     -webkit-tap-highlight-color: transparent;
-    min-height: max(884px, 100dvh);
+    min-height: 100dvh;
   }
 }
 
@@ -226,12 +226,12 @@ button:not(:disabled):active, .clickable:active {
 
 /* Global Spacing Utility */
 .safe-bottom-padding {
-  padding-bottom: 450px !important;
+  padding-bottom: 120px !important;
 }
 
 .fixed-action-footer {
   position: fixed;
-  bottom: 110px;
+  bottom: 64px;
   left: 0;
   right: 0;
   z-index: 45;

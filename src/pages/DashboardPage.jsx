@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
   const { currentUser } = useAuth();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState(() => {
@@ -36,9 +36,7 @@ export default function DashboardPage() {
   });
 
   const [shopName, setShopName] = useState(() => {
-    if (!currentUser || currentUser.demo) {
-      return localStorage.getItem('shopName') || '';
-    }
+    if (!currentUser || currentUser.demo) return localStorage.getItem('shopName') || '';
     return '';
   });
 
@@ -49,6 +47,7 @@ export default function DashboardPage() {
     }
     return 0;
   });
+
   const [recentBills, setRecentBills] = useState(() => {
     if (!currentUser || currentUser.demo) {
       const bills = JSON.parse(localStorage.getItem('bills') || '[]');
@@ -56,6 +55,7 @@ export default function DashboardPage() {
     }
     return [];
   });
+
   const [monthlySales, setMonthlySales] = useState(() => {
     if (!currentUser || currentUser.demo) {
       const bills = JSON.parse(localStorage.getItem('bills') || '[]');
@@ -63,416 +63,301 @@ export default function DashboardPage() {
       const currentYear = new Date().getFullYear();
       return bills.reduce((sum, b) => {
         const bDate = b.date ? new Date(b.date) : new Date(0);
-        if (bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear) {
+        if (bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear)
           return sum + Number(b.total || 0);
-        }
         return sum;
       }, 0);
     }
     return 0;
   });
+
   const [weeklySalesData, setWeeklySalesData] = useState(() => {
     if (!currentUser || currentUser.demo) {
       const bills = JSON.parse(localStorage.getItem('bills') || '[]');
       const last7Days = [...Array(7)].map((_, i) => {
-        const d = new Date();
-        d.setHours(0,0,0,0);
-        d.setDate(d.getDate() - (6 - i));
-        return d;
+        const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - (6 - i)); return d;
       });
-      const weeklyData = last7Days.map(day => {
-        return bills.filter(b => {
-          const bDate = new Date(b.date);
-          bDate.setHours(0,0,0,0);
-          return bDate.getTime() === day.getTime();
-        }).reduce((sum, b) => sum + (Number(b.total) || 0), 0);
-      });
+      const weeklyData = last7Days.map(day =>
+        bills.filter(b => { const bd = new Date(b.date); bd.setHours(0,0,0,0); return bd.getTime() === day.getTime(); })
+          .reduce((sum, b) => sum + (Number(b.total) || 0), 0)
+      );
       const maxVal = Math.max(...weeklyData, 1);
       return weeklyData.map(v => (v / maxVal) * 100);
     }
     return [0, 0, 0, 0, 0, 0, 0];
   });
+
   const [saleTrend, setSaleTrend] = useState(() => {
     if (!currentUser || currentUser.demo) {
       const bills = JSON.parse(localStorage.getItem('bills') || '[]');
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const mSales = bills.reduce((sum, b) => {
-        const bDate = b.date ? new Date(b.date) : new Date(0);
-        if (bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear) {
-          return sum + Number(b.total || 0);
-        }
-        return sum;
-      }, 0);
-
-      const lastMonthDate = new Date();
-      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-      const lMonth = lastMonthDate.getMonth();
-      const lYear = lastMonthDate.getFullYear();
-      const lMonthSales = bills.reduce((sum, b) => {
-        const bDate = b.date ? new Date(b.date) : new Date(0);
-        if (bDate.getMonth() === lMonth && bDate.getFullYear() === lYear) {
-          return sum + Number(b.total || 0);
-        }
-        return sum;
-      }, 0);
-
-      if (lMonthSales > 0) {
-        const diff = mSales - lMonthSales;
-        const pct = (diff / lMonthSales) * 100;
-        return { percent: Math.abs(Math.round(pct)), isUp: pct >= 0 };
-      }
+      const cm = new Date().getMonth(), cy = new Date().getFullYear();
+      const mSales = bills.reduce((s,b) => { const d = b.date ? new Date(b.date) : new Date(0); return d.getMonth()===cm && d.getFullYear()===cy ? s+Number(b.total||0) : s; }, 0);
+      const lmd = new Date(); lmd.setMonth(lmd.getMonth()-1);
+      const lMonthSales = bills.reduce((s,b) => { const d = b.date ? new Date(b.date) : new Date(0); return d.getMonth()===lmd.getMonth() && d.getFullYear()===lmd.getFullYear() ? s+Number(b.total||0) : s; }, 0);
+      if (lMonthSales > 0) { const pct = ((mSales - lMonthSales)/lMonthSales)*100; return { percent: Math.abs(Math.round(pct)), isUp: pct >= 0 }; }
       return { percent: 100, isUp: true };
     }
     return { percent: 0, isUp: true };
   });
+
   const [showNotifications, setShowNotifications] = useState(false);
-  const [criticalAlert, setCriticalAlert] = useState(() => {
-    if (!currentUser || currentUser.demo) {
-      const inv = JSON.parse(localStorage.getItem('products') || '[]');
-      const lowStock = inv.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5));
-      return lowStock.length > 0 ? [...lowStock].sort((a, b) => a.stock - b.stock)[0] : null;
-    }
-    return null;
-  });
   const [overdueUdharAlert, setOverdueUdharAlert] = useState(null);
 
   useEffect(() => {
     const processBillsData = (data) => {
       setRecentBills(data.slice(0, 3));
       const today = new Date().toDateString();
-      const todayBillsArr = data ? data.filter(b => b.date && new Date(b.date).toDateString() === today) : [];
-      
-      const newTodaySales = todayBillsArr.reduce((s, b) => s + (Number(b.total) || 0), 0);
-      const newTodayProfit = todayBillsArr.reduce((s, b) => s + (Number(b.profit) || 0), 0);
-
+      const todayBillsArr = data.filter(b => b.date && new Date(b.date).toDateString() === today);
       setStats(prev => ({
         ...prev,
-        todaySales: newTodaySales,
-        todayProfit: newTodayProfit,
+        todaySales: todayBillsArr.reduce((s, b) => s + (Number(b.total) || 0), 0),
+        todayProfit: todayBillsArr.reduce((s, b) => s + (Number(b.profit) || 0), 0),
         todayBills: todayBillsArr.length
       }));
-
-      // Monthly sales calculation
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const mSales = data.reduce((sum, b) => {
-        const bDate = b.date ? new Date(b.date) : new Date(0);
-        if (bDate.getMonth() === currentMonth && bDate.getFullYear() === currentYear) {
-          return sum + Number(b.total || 0);
-        }
-        return sum;
-      }, 0);
+      const cm = new Date().getMonth(), cy = new Date().getFullYear();
+      const mSales = data.reduce((s,b) => { const d=b.date?new Date(b.date):new Date(0); return d.getMonth()===cm&&d.getFullYear()===cy?s+Number(b.total||0):s; }, 0);
       setMonthlySales(mSales);
-
-      // Monthly Trend
-      const lastMonthDate = new Date();
-      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-      const lMonth = lastMonthDate.getMonth();
-      const lYear = lastMonthDate.getFullYear();
-      const lMonthSales = data.reduce((sum, b) => {
-        const bDate = b.date ? new Date(b.date) : new Date(0);
-        if (bDate.getMonth() === lMonth && bDate.getFullYear() === lYear) {
-          return sum + Number(b.total || 0);
-        }
-        return sum;
-      }, 0);
-
-      if (lMonthSales > 0) {
-        const diff = mSales - lMonthSales;
-        const pct = (diff / lMonthSales) * 100;
-        setSaleTrend({ percent: Math.abs(Math.round(pct)), isUp: pct >= 0 });
-      } else {
-        setSaleTrend({ percent: 100, isUp: true });
-      }
-
-      // Weekly Data (last 7 days)
-      const last7Days = [...Array(7)].map((_, i) => {
-        const d = new Date();
-        d.setHours(0,0,0,0);
-        d.setDate(d.getDate() - (6 - i));
-        return d;
-      });
-      const weeklyData = last7Days.map(day => {
-        return data.filter(b => {
-          const bDate = new Date(b.date);
-          bDate.setHours(0,0,0,0);
-          return bDate.getTime() === day.getTime();
-        }).reduce((sum, b) => sum + (Number(b.total) || 0), 0);
-      });
+      const lmd = new Date(); lmd.setMonth(lmd.getMonth()-1);
+      const lMonthSales = data.reduce((s,b) => { const d=b.date?new Date(b.date):new Date(0); return d.getMonth()===lmd.getMonth()&&d.getFullYear()===lmd.getFullYear()?s+Number(b.total||0):s; }, 0);
+      if (lMonthSales > 0) { const pct=((mSales-lMonthSales)/lMonthSales)*100; setSaleTrend({percent:Math.abs(Math.round(pct)),isUp:pct>=0}); }
+      else setSaleTrend({percent:100,isUp:true});
+      const last7Days = [...Array(7)].map((_,i)=>{ const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(6-i));return d; });
+      const weeklyData = last7Days.map(day => data.filter(b=>{ const bd=new Date(b.date);bd.setHours(0,0,0,0);return bd.getTime()===day.getTime(); }).reduce((s,b)=>s+(Number(b.total)||0),0));
       const maxVal = Math.max(...weeklyData, 1);
-      setWeeklySalesData(weeklyData.map(v => (v / maxVal) * 100));
+      setWeeklySalesData(weeklyData.map(v=>(v/maxVal)*100));
     };
 
-    if (!currentUser || currentUser.demo) {
-      return;
-    }
+    if (!currentUser || currentUser.demo) return;
 
     const unsubProfile = dbService.getShopProfile(currentUser.uid, (data) => {
       if (data) setShopName(data.shopName || 'ShopSaathi');
     });
-
     const unsubInventory = dbService.subscribeInventory(currentUser.uid, (data) => {
-      const lowStock = data.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5));
-      setLowStockCount(lowStock.length);
-      if (lowStock.length > 0) {
-        setCriticalAlert([...lowStock].sort((a, b) => a.stock - b.stock)[0]);
-      }
+      setLowStockCount(data.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5)).length);
     });
-
-    const unsubBills = dbService.subscribeBills(currentUser.uid, (data) => {
-      processBillsData(data);
-    });
-
+    const unsubBills = dbService.subscribeBills(currentUser.uid, processBillsData);
     const unsubUdhar = dbService.subscribeUdhar(currentUser.uid, (data) => {
       const todayStr = new Date().toISOString().split('T')[0];
       setOverdueUdharAlert(data.find(u => u.status !== 'paid' && u.dueDate && u.dueDate < todayStr));
-      
       setStats(prev => ({
         ...prev,
-        totalToReceive: data.filter(u => u.type === 'receive').reduce((s, u) => s + (Number(u.remainingAmount) || 0), 0),
-        totalToPay: data.filter(u => u.type === 'pay').reduce((s, u) => s + (Number(u.remainingAmount) || 0), 0)
+        totalToReceive: data.filter(u=>u.type==='receive').reduce((s,u)=>s+(Number(u.remainingAmount)||0),0),
+        totalToPay: data.filter(u=>u.type==='pay').reduce((s,u)=>s+(Number(u.remainingAmount)||0),0)
       }));
     });
 
-    return () => {
-      unsubProfile?.();
-      unsubInventory?.();
-      unsubBills?.();
-      unsubUdhar?.();
-    };
+    return () => { unsubProfile?.(); unsubInventory?.(); unsubBills?.(); unsubUdhar?.(); };
   }, [currentUser]);
 
-  const todayDate = new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : language === 'hi' ? 'hi-IN' : 'kn-IN', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
-  }).format(new Date());
+  const todayDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date());
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return t('good_morning') + ' 🌅';
-    if (hour < 17) return t('good_afternoon') + ' ☀️';
-    return t('good_evening') + ' 🌙';
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
-  // Display stats array for rendering
-  const statsConfig = [
-    { label: t('today_sales'), value: `₹${(stats?.todaySales || 0).toLocaleString()}`, icon: "payments", color: "bg-primary-fixed", text: "text-on-primary-fixed", fullWidth: true },
-    { label: t('today_profit'), value: `₹${(stats?.todayProfit || 0).toLocaleString()}`, icon: "trending_up", color: "bg-tertiary-fixed-dim", text: "text-on-tertiary-fixed", trend: t('live_margin') },
-    { label: t('history'), value: (stats?.todayBills || 0).toString(), icon: "receipt_long", color: "bg-secondary-fixed", text: "text-on-secondary-fixed", trend: t('satisfied') },
-    { label: t('total_udhar'), value: `₹${(stats?.totalToReceive || 0).toLocaleString()}`, icon: "account_balance_wallet", color: "bg-primary-fixed-dim", text: "text-on-primary-fixed", trend: t('customer_debt') },
-    { label: t('overdue_udhar'), value: `₹${(stats?.totalToPay || 0).toLocaleString()}`, icon: "outbound", color: "bg-error-container", text: "text-on-error-container", trend: t('supplier_debt') },
-  ];
+  const hasAlerts = lowStockCount > 0 || !!overdueUdharAlert;
 
   return (
-    <main className="max-w-[450px] mx-auto px-6 pt-8 space-y-8 safe-bottom-padding page-transition-enter">
-      {/* Top AppBar replacement */}
-      <header className="flex items-center justify-between py-4 relative">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-primary text-3xl">storefront</span>
-          <h1 className="font-headline font-extrabold text-2xl tracking-tight text-primary">ShopSaathi</h1>
+    <main className="max-w-[450px] mx-auto px-4 pt-4 pb-28 space-y-4 page-transition-enter">
+
+      {/* ── Header ── */}
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-2xl filled-icon">storefront</span>
+          <h1 className="font-headline font-extrabold text-xl tracking-tight text-primary">ShopSaathi</h1>
         </div>
-        <div className="relative">
-          <button 
-            onClick={() => setShowNotifications(!showNotifications)}
+        <div className="flex items-center gap-1">
+          {/* Settings */}
+          <button
+            onClick={() => navigate('/settings')}
             className="p-2 rounded-full hover:bg-surface-container-high transition-colors active:scale-95"
           >
-            <span className="material-symbols-outlined text-on-surface-variant">notifications</span>
-            {(lowStockCount > 0 || overdueUdharAlert) && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
-            )}
+            <span className="material-symbols-outlined text-on-surface-variant text-xl">settings</span>
           </button>
-          
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-64 bg-surface rounded-2xl shadow-2xl border border-outline-variant p-4 z-[100] animate-in slide-in-from-top-2 duration-200">
-              <h4 className="font-bold text-sm uppercase tracking-widest text-on-surface-variant mb-4 px-2">Notifications</h4>
-              <div className="space-y-3">
-                {lowStockCount > 0 && (
-                  <div className="flex gap-3 text-sm p-2 hover:bg-surface-container-low rounded-xl transition-colors">
-                    <span className="material-symbols-outlined text-error">warning</span>
-                    <p className="font-medium text-on-surface">⚠️ {lowStockCount} items are low on stock</p>
-                  </div>
-                )}
-                {overdueUdharAlert && (
-                  <div className="flex gap-3 text-sm p-2 hover:bg-surface-container-low rounded-xl transition-colors">
-                    <span className="material-symbols-outlined text-secondary">event_busy</span>
-                    <p className="font-medium text-on-surface">⚠️ Udhar overdue for {overdueUdharAlert.name}</p>
-                  </div>
-                )}
-                {lowStockCount === 0 && !overdueUdharAlert && (
-                  <div className="text-center py-4 text-on-surface-variant opacity-50 font-bold italic">
-                    No new notifications 🔔
-                  </div>
-                )}
+          {/* Notifications */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 rounded-full hover:bg-surface-container-high transition-colors active:scale-95"
+            >
+              <span className="material-symbols-outlined text-on-surface-variant text-xl">notifications</span>
+              {hasAlerts && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface" />
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-1 w-60 bg-surface rounded-2xl shadow-2xl border border-outline-variant/30 p-3 z-[100] animate-in slide-in-from-top-2 duration-200">
+                <h4 className="font-bold text-xs uppercase tracking-widest text-on-surface-variant mb-3 px-1">Alerts</h4>
+                <div className="space-y-2">
+                  {lowStockCount > 0 && (
+                    <button onClick={() => { navigate('/inventory'); setShowNotifications(false); }} className="w-full flex gap-2 text-sm p-2 hover:bg-surface-container-low rounded-xl text-left">
+                      <span className="material-symbols-outlined text-error text-base">warning</span>
+                      <p className="font-medium text-on-surface">{lowStockCount} items low on stock</p>
+                    </button>
+                  )}
+                  {overdueUdharAlert && (
+                    <button onClick={() => { navigate('/udhar'); setShowNotifications(false); }} className="w-full flex gap-2 text-sm p-2 hover:bg-surface-container-low rounded-xl text-left">
+                      <span className="material-symbols-outlined text-secondary text-base">event_busy</span>
+                      <p className="font-medium text-on-surface">Udhar overdue: {overdueUdharAlert.name}</p>
+                    </button>
+                  )}
+                  {!hasAlerts && (
+                    <p className="text-center py-3 text-on-surface-variant text-sm font-medium">All clear 🎉</p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Greeting */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xl font-bold text-on-surface">{getGreeting()}</span>
-          <span className="text-sm font-medium text-on-surface-variant">{t('today') || 'Today'}, {todayDate}</span>
+      {/* ── Greeting + Shop name ── */}
+      <section className="flex items-baseline justify-between">
+        <div>
+          <p className="text-sm text-on-surface-variant font-medium">{getGreeting()},</p>
+          <h2 className="font-headline text-2xl font-bold text-primary leading-tight truncate max-w-[220px]">
+            {shopName || 'Your Shop'}
+          </h2>
         </div>
-        <h2 className="font-headline text-3xl text-primary tracking-tight">{shopName}</h2>
+        <span className="text-xs font-bold text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">{todayDate}</span>
       </section>
 
-      {/* Bento Grid Metrics */}
-      <section className="grid grid-cols-2 gap-4">
-        {statsConfig.map((stat, i) => (
-          <div key={i} className={`${stat.color} ${stat.fullWidth ? 'col-span-2' : ''} p-6 rounded-lg flex flex-col justify-between shadow-sm relative overflow-hidden h-32 clickable transition-all duration-200 hover:shadow-md`}>
-            {stat.fullWidth ? (
-              <div className="flex flex-row items-center justify-between h-full">
-                <div>
-                  <p className={`${stat.text}-variant font-bold text-lg mb-1`}>{stat.label}</p>
-                  <p className={`font-headline text-4xl ${stat.text}`}>{stat.value}</p>
-                </div>
-                <div className="w-16 h-16 rounded-full bg-black/5 flex items-center justify-center">
-                  <span className={`material-symbols-outlined text-3xl ${stat.text} filled-icon`}>{stat.icon}</span>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <p className={`${stat.text}-variant font-bold text-base mb-1`}>{stat.label}</p>
-                  <p className={`font-headline text-2xl ${stat.text}`}>{stat.value}</p>
-                </div>
-                <div className="mt-2 text-sm font-medium flex items-center gap-1 opacity-80">
-                  <span className="material-symbols-outlined text-sm">{stat.icon === 'trending_up' ? 'trending_up' : 'receipt_long'}</span>
-                  <span>{stat.trend}</span>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-
-        {/* Low Stock Banner */}
-        <div 
-          onClick={() => navigate('/inventory')}
-          className="col-span-2 p-5 rounded-lg bg-error-container flex items-center justify-between border-l-4 border-error low-stock-pulse cursor-pointer"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-error filled-icon">inventory_2</span>
-            </div>
-            <div>
-              <p className="text-on-error-container font-bold text-lg">{t('low_stock')}</p>
-              <p className="text-on-error-container/80 text-sm">{lowStockCount} {t('items')} {t('need_ordering')}</p>
-            </div>
-          </div>
-          <p className="font-headline text-3xl text-error">{lowStockCount}</p>
-        </div>
-      </section>
-
-      {/* Monthly Sales Chart Simulation */}
-      <section className="p-6 rounded-lg bg-surface-container-low space-y-6">
-        <div className="flex items-end justify-between">
+      {/* ── Stats grid ── */}
+      <section className="grid grid-cols-2 gap-2">
+        {/* Today Sales — full width */}
+        <div className="col-span-2 bg-primary-fixed p-4 rounded-2xl flex items-center justify-between">
           <div>
-            <p className="text-on-surface-variant font-bold text-lg uppercase tracking-wider">{t('this_months_sales')}</p>
-            <p className="font-headline text-4xl text-on-surface">₹{monthlySales.toLocaleString()}</p>
+            <p className="text-xs font-bold text-on-primary-fixed/70 uppercase tracking-wider mb-0.5">{t('today_sales')}</p>
+            <p className="font-headline text-3xl font-black text-on-primary-fixed">₹{(stats.todaySales||0).toLocaleString()}</p>
           </div>
-          <span className={`${saleTrend.isUp ? 'text-primary bg-primary-fixed' : 'text-error bg-error-container'} font-bold text-sm px-3 py-1 rounded-full flex items-center gap-1`}>
+          <div className="w-12 h-12 rounded-full bg-black/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-on-primary-fixed text-2xl filled-icon">payments</span>
+          </div>
+        </div>
+
+        {/* Profit */}
+        <div className="bg-tertiary-fixed-dim p-3 rounded-2xl">
+          <p className="text-[10px] font-bold text-on-tertiary-fixed/70 uppercase tracking-wider">{t('today_profit')}</p>
+          <p className="font-headline text-2xl font-black text-on-tertiary-fixed mt-0.5">₹{(stats.todayProfit||0).toLocaleString()}</p>
+        </div>
+
+        {/* Bills count */}
+        <div className="bg-secondary-fixed p-3 rounded-2xl">
+          <p className="text-[10px] font-bold text-on-secondary-fixed/70 uppercase tracking-wider">Bills Today</p>
+          <p className="font-headline text-2xl font-black text-on-secondary-fixed mt-0.5">{stats.todayBills||0}</p>
+        </div>
+
+        {/* Udhar to receive */}
+        <div className="bg-primary-fixed-dim p-3 rounded-2xl">
+          <p className="text-[10px] font-bold text-on-primary-fixed/70 uppercase tracking-wider">{t('total_udhar')}</p>
+          <p className="font-headline text-xl font-black text-on-primary-fixed mt-0.5">₹{(stats.totalToReceive||0).toLocaleString()}</p>
+          <p className="text-[9px] text-on-primary-fixed/60 font-bold mt-0.5">To receive</p>
+        </div>
+
+        {/* Supplier to pay */}
+        <div className="bg-error-container p-3 rounded-2xl">
+          <p className="text-[10px] font-bold text-on-error-container/70 uppercase tracking-wider">To Pay</p>
+          <p className="font-headline text-xl font-black text-on-error-container mt-0.5">₹{(stats.totalToPay||0).toLocaleString()}</p>
+          <p className="text-[9px] text-on-error-container/60 font-bold mt-0.5">Supplier debt</p>
+        </div>
+      </section>
+
+      {/* ── Low stock alert (only when present) ── */}
+      {lowStockCount > 0 && (
+        <button
+          onClick={() => navigate('/inventory')}
+          className="w-full flex items-center justify-between p-3 rounded-2xl bg-error-container border border-error/20 active:scale-[0.98] transition-transform"
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-error filled-icon">inventory_2</span>
+            <p className="text-sm font-bold text-on-error-container">{lowStockCount} items need restocking</p>
+          </div>
+          <span className="font-headline text-2xl font-black text-error">{lowStockCount}</span>
+        </button>
+      )}
+
+      {/* ── Overdue udhar (only when present) ── */}
+      {overdueUdharAlert && (
+        <button
+          onClick={() => navigate('/udhar')}
+          className="w-full flex items-center gap-3 p-3 rounded-2xl bg-surface-container-low border border-secondary/20 active:scale-[0.98] transition-transform"
+        >
+          <span className="material-symbols-outlined text-secondary filled-icon">event_busy</span>
+          <div className="text-left">
+            <p className="text-sm font-bold text-on-surface">Overdue: {overdueUdharAlert.name}</p>
+            <p className="text-xs text-on-surface-variant">₹{overdueUdharAlert.remainingAmount?.toLocaleString()} due {overdueUdharAlert.dueDate}</p>
+          </div>
+        </button>
+      )}
+
+      {/* ── Weekly chart ── */}
+      <section className="bg-surface-container-low p-4 rounded-2xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">This Month</p>
+            <p className="font-headline text-2xl font-black text-on-surface">₹{monthlySales.toLocaleString()}</p>
+          </div>
+          <span className={`text-xs font-black px-2 py-1 rounded-full flex items-center gap-0.5 ${saleTrend.isUp ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-error-container text-on-error-container'}`}>
             {saleTrend.percent}% {saleTrend.isUp ? '↑' : '↓'}
           </span>
         </div>
-        <div className="flex items-end justify-between h-24 gap-2 pt-4 px-2">
+        {/* Bars */}
+        <div className="flex items-end gap-1 h-12">
           {weeklySalesData.map((h, i) => (
-            <div key={i} className={`w-full rounded-t-lg ${h > 80 ? 'bg-primary' : 'bg-surface-container-highest'}`} style={{ height: `${h}%` }}></div>
+            <div
+              key={i}
+              className={`flex-1 rounded-t ${h > 75 ? 'bg-primary' : h > 40 ? 'bg-primary/50' : 'bg-surface-container-highest'}`}
+              style={{ height: `${Math.max(h, 4)}%` }}
+            />
           ))}
         </div>
-        <div className="flex justify-between text-[10px] font-bold text-on-surface-variant px-1 uppercase">
+        <div className="flex justify-between">
           {[...Array(7)].map((_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - (6 - i));
-            return <span key={i}>{d.toLocaleDateString([], { weekday: 'short' })}</span>
+            const d = new Date(); d.setDate(d.getDate() - (6 - i));
+            return <span key={i} className="text-[9px] font-bold text-on-surface-variant/60 uppercase">{d.toLocaleDateString([],{weekday:'narrow'})}</span>;
           })}
         </div>
       </section>
 
-      {/* Critical & Overdue Alerts */}
-      {(criticalAlert || overdueUdharAlert) && (
-        <section className="space-y-4 animate-in fade-in duration-500">
-          <h3 className="font-headline text-xl font-bold flex items-center gap-2 text-on-surface">
-            <span className="material-symbols-outlined text-error">warning</span>
-            {t('priority_alerts')}
-          </h3>
-          <div className="space-y-3">
-            {criticalAlert && (
-              <div 
-                onClick={() => navigate('/inventory')}
-                className="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-lg border-l-8 border-error shadow-sm cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-error text-3xl">production_quantity_limits</span>
-                <div>
-                  <p className="font-bold text-lg">{criticalAlert.name}</p>
-                  <p className="text-on-surface-variant text-sm font-medium">{t('only')} {criticalAlert.stock} {t('units_left')}</p>
-                </div>
-              </div>
-            )}
-            
-            {overdueUdharAlert && (
-              <div 
-                onClick={() => navigate('/udhar')}
-                className="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-lg border-l-8 border-secondary shadow-sm cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-secondary text-3xl">event_busy</span>
-                <div>
-                  <p className="font-bold text-lg">{t('overdue')}: {overdueUdharAlert.name}</p>
-                  <p className="text-on-surface-variant text-sm font-medium">₹{overdueUdharAlert.remainingAmount.toLocaleString()} {t('payment_due_on')} {overdueUdharAlert.dueDate}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Recent Bills */}
-      <section className="space-y-4 pb-24">
+      {/* ── Recent Bills ── */}
+      <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-headline text-xl font-bold">{t('history')}</h3>
-          <button onClick={() => navigate('/bills')} className="text-primary font-bold text-sm">{t('view_all')}</button>
+          <h3 className="font-headline text-base font-bold text-on-surface">Recent Bills</h3>
+          <button onClick={() => navigate('/bills')} className="text-primary font-bold text-xs">{t('view_all')}</button>
         </div>
-        <div className="space-y-4">
-          {recentBills.length === 0 ? (
-            <div className="p-10 text-center bg-surface-container-low rounded-xl text-outline border-2 border-dashed border-outline-variant/30 font-bold">
-              No bills generated yet
-            </div>
-          ) : (
-            recentBills.map(bill => (
-              <div key={bill.id} className={`bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between border-l-4 ${bill.isUdhar ? 'border-error' : 'border-primary'} shadow-sm`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center font-bold text-primary">
-                    {(bill.customerName || 'Guest').split(' ').map(n => n[0]).join('')}
+
+        {recentBills.length === 0 ? (
+          <div className="p-8 text-center bg-surface-container-low rounded-2xl text-on-surface-variant text-sm border-2 border-dashed border-outline-variant/30 font-medium">
+            No bills yet — tap + to create one
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recentBills.map(bill => (
+              <div key={bill.id} className={`bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between border-l-4 ${bill.isUdhar ? 'border-error' : 'border-primary'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-surface-container-high rounded-full flex items-center justify-center font-bold text-primary text-sm">
+                    {(bill.customerName || 'G').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-lg">{bill.customerName || t('guest')}</p>
-                    <p className="text-on-surface-variant text-sm font-medium">{bill.date ? new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                    <p className="font-bold text-sm text-on-surface leading-none">{bill.customerName || t('guest')}</p>
+                    <p className="text-on-surface-variant text-xs mt-0.5">
+                      {bill.date ? new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-headline text-lg">₹{bill.total.toLocaleString()}</p>
-                  <span className={`${bill.isUdhar ? 'bg-error-container text-error' : 'bg-primary-container text-primary'} font-bold px-3 py-1 rounded-full text-[10px] uppercase tracking-widest`}>
+                  <p className="font-headline text-base font-black">₹{bill.total.toLocaleString()}</p>
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${bill.isUdhar ? 'bg-error-container text-error' : 'bg-primary-container text-on-primary-container'}`}>
                     {bill.isUdhar ? t('udhar') : t('paid')}
                   </span>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Big Prominent CTA */}
-      <section className="fixed-action-footer px-5 z-40">
-        <button 
-          onClick={() => navigate('/new-bill')}
-          className="signature-gradient w-full py-6 rounded-xl flex items-center justify-center gap-4 text-on-primary font-bold text-xl shadow-2xl active:scale-95 transition-transform"
-        >
-          <span className="material-symbols-outlined text-3xl filled-icon">add_circle</span>
-          {t('bill')}
-        </button>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

@@ -653,122 +653,99 @@ export default function BillConfirmPage() {
   }
 
   return (
-    <main className="max-w-[450px] mx-auto px-6 pt-6 space-y-10 safe-bottom-padding page-transition-enter">
-      {/* Top App Bar with Back Button */}
-      <header className="flex items-center justify-between py-2">
-        <button 
+    <main className="max-w-[450px] mx-auto px-4 pt-4 pb-28 space-y-4 page-transition-enter">
+      {/* Header */}
+      <header className="flex items-center justify-between py-1">
+        <button
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container-high hover:bg-surface-container-highest transition-colors active:scale-95"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-surface-container-high hover:bg-surface-container-highest transition-colors active:scale-95"
         >
-          <span className="material-symbols-outlined text-on-surface">arrow_back</span>
+          <span className="material-symbols-outlined text-on-surface text-xl">arrow_back</span>
         </button>
-        <h1 className="font-headline font-extrabold text-2xl tracking-tight text-primary">ShopSaathi</h1>
-        <div className="w-10"></div>
+        <h1 className="font-headline font-extrabold text-xl tracking-tight text-primary">{t('confirm_details')}</h1>
+        <div className="w-9" />
       </header>
 
-      {/* Page Title */}
-      <div className="space-y-1 px-2 animate-in slide-in-from-top-4 duration-300">
-        <h2 className="font-headline font-bold text-3xl tracking-tight text-on-surface">{t('confirm_details')}</h2>
-        <p className="text-on-surface-variant font-body text-base">Enter customer information to finalize</p>
-      </div>
-
-      {/* Summary Recap */}
-      <section className="bg-surface-container-highest/20 rounded-2xl p-6 border border-outline-variant/30 animate-in fade-in duration-300">
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-bold text-on-surface">Items added</span>
-          <span className="bg-primary text-white px-3 py-1 rounded-full text-xs font-black">{items.length}</span>
+      {/* Items summary */}
+      <section className="bg-surface-container-low rounded-2xl p-3 animate-in fade-in duration-300">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Items ({items.length})</span>
+          <span className="font-headline text-xl font-black text-primary">₹{total.toLocaleString()}</span>
         </div>
-        <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-none">
+        <div className="space-y-1.5 max-h-28 overflow-y-auto">
           {items.map(item => (
             <div key={item.id} className="flex justify-between text-sm items-center">
-              <span className="text-on-surface-variant font-medium">
-                {item.name} <span className="text-[10px] opacity-70">({item.billingQty} {item.billingUnit || item.unit})</span>
+              <span className="text-on-surface-variant font-medium truncate max-w-[65%]">
+                {item.name} <span className="text-[10px] opacity-60">× {item.billingQty}{item.billingUnit || item.unit}</span>
               </span>
-              <span className="font-bold">₹{item.price.toLocaleString()}</span>
+              <span className="font-bold text-on-surface">₹{item.price.toLocaleString()}</span>
             </div>
           ))}
         </div>
-        <div className="border-t border-outline-variant/30 mt-4 pt-4 flex justify-between items-center bg-surface p-4 rounded-xl">
-           <span className="text-on-surface-variant font-bold uppercase tracking-widest text-xs">Final Total</span>
-           <span className="font-headline text-2xl font-black text-primary">₹{total.toLocaleString()}</span>
-        </div>
+        {gstEnabled && (
+          <div className="border-t border-outline-variant/20 mt-2 pt-2 flex justify-between text-xs text-secondary font-bold">
+            <span>GST 18%</span><span>₹{gst.toLocaleString()}</span>
+          </div>
+        )}
       </section>
 
-      {/* Customer Information Form */}
-      <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-2 h-8 bg-secondary rounded-full"></div>
-          <h3 className="font-headline font-bold text-xl uppercase tracking-wider text-secondary">{t('customer_info') || 'Customer Info'}</h3>
-        </div>
-        
-        <div className="bg-surface-container-low rounded-lg p-6 space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-bold uppercase tracking-widest text-on-surface-variant px-2">{t('customer_name')}</label>
-            <div className="bg-surface-container-high rounded-lg p-5 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
-              <span className="material-symbols-outlined text-outline">person</span>
-              <input 
-                className="bg-transparent border-none w-full text-xl font-semibold focus:ring-0 p-0 text-on-surface" 
-                placeholder="E.g., Anil Kumar" 
-                type="text" 
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-            </div>
+      {/* Customer form */}
+      <section className="space-y-2 animate-in fade-in duration-300">
+        <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1">{t('customer_info') || 'Customer Info'} <span className="font-normal normal-case">(optional)</span></p>
+        <div className="bg-surface-container-low rounded-2xl p-3 space-y-3">
+          <div className="bg-surface-container-high rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
+            <span className="material-symbols-outlined text-outline text-xl">person</span>
+            <input
+              className="bg-transparent border-none w-full text-base font-semibold focus:ring-0 p-0 text-on-surface"
+              placeholder={t('customer_name') + ' — e.g. Anil Kumar'}
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold uppercase tracking-widest text-on-surface-variant px-2">{t('phone_number')}</label>
-            <div className="bg-surface-container-high rounded-lg p-5 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
-              <span className="material-symbols-outlined text-outline">call</span>
-              <input 
-                className="bg-transparent border-none w-full text-xl font-semibold focus:ring-0 p-0 text-on-surface" 
-                placeholder="98765 43210" 
-                type="tel" 
-                maxLength="10"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
-              />
-            </div>
+          <div className="bg-surface-container-high rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
+            <span className="material-symbols-outlined text-outline text-xl">call</span>
+            <input
+              className="bg-transparent border-none w-full text-base font-semibold focus:ring-0 p-0 text-on-surface"
+              placeholder="Phone — 98765 43210"
+              type="tel"
+              maxLength="10"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
+            />
           </div>
         </div>
       </section>
 
-      {/* Udhar Toggle */}
-      <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300 delay-75">
-        <div className="bg-surface-container-low rounded-lg p-6">
-          <div 
-            className="flex items-center justify-between bg-surface-container-lowest p-6 rounded-lg cursor-pointer transition-all active:scale-[0.98]" 
-            onClick={() => setIsUdhar(!isUdhar)}
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${isUdhar ? 'bg-error-container text-error scale-110' : 'bg-surface-container-highest text-on-surface-variant'}`}>
-                <span className="material-symbols-outlined text-2xl">menu_book</span>
-              </div>
-              <div>
-                <span className="text-xl font-bold block">{t('add_to_udhar')}</span>
-                <span className="text-sm text-on-surface-variant font-medium">{t('customer_debt')}</span>
-              </div>
-            </div>
-            <button 
-              className={`w-16 h-8 rounded-full relative p-1 transition-colors duration-300 ${isUdhar ? 'bg-error' : 'bg-surface-container-highest'}`}
-            >
-              <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${isUdhar ? 'translate-x-8' : 'translate-x-0'}`}></div>
-            </button>
+      {/* Udhar toggle */}
+      <div
+        className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${isUdhar ? 'bg-error-container border border-error/30' : 'bg-surface-container-low'}`}
+        onClick={() => setIsUdhar(!isUdhar)}
+      >
+        <div className="flex items-center gap-3">
+          <span className={`material-symbols-outlined text-xl ${isUdhar ? 'text-error filled-icon' : 'text-on-surface-variant'}`}>menu_book</span>
+          <div>
+            <p className="font-bold text-sm text-on-surface">{t('add_to_udhar')}</p>
+            <p className="text-xs text-on-surface-variant">{t('customer_debt')}</p>
           </div>
         </div>
-      </section>
+        <div className={`w-12 h-6 rounded-full relative p-0.5 transition-colors duration-300 ${isUdhar ? 'bg-error' : 'bg-surface-container-highest'}`}>
+          <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${isUdhar ? 'translate-x-6' : 'translate-x-0'}`} />
+        </div>
+      </div>
 
       {/* Generate Bill Button */}
-      <div className="fixed-action-footer bg-surface/95 backdrop-blur-md px-6 py-6 border-t border-outline-variant shadow-[0_-12px_32px_rgba(0,0,0,0.08)] rounded-t-[2.5rem]">
-        <button 
+      <div className="fixed-action-footer bg-surface/95 backdrop-blur-md px-4 py-3 border-t border-outline-variant/30 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] rounded-t-2xl">
+        <button
           onClick={handleConfirm}
           disabled={loading}
-          className="signature-gradient w-full h-16 rounded-full flex items-center justify-center gap-3 text-white font-headline text-xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-70 disabled:active:scale-100"
+          className="signature-gradient w-full h-13 py-3 rounded-full flex items-center justify-center gap-2 text-white font-headline text-lg font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-70 disabled:active:scale-100"
         >
           {loading ? (
-            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
             <>
-              <span className="material-symbols-outlined filled-icon">receipt_long</span>
+              <span className="material-symbols-outlined filled-icon text-xl">receipt_long</span>
               {t('generate_bill')}
             </>
           )}

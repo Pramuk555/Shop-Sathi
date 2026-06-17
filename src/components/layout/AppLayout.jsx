@@ -49,7 +49,7 @@ export default function AppLayout() {
           </button>
         </div>
       )}
-      <main className={`flex-1 ${!hideNav ? 'pb-60' : ''} ${showBanner ? 'pt-12' : ''}`}>
+      <main className={`flex-1 ${showBanner ? 'pt-12' : ''}`}>
         <Outlet />
       </main>
       {!hideNav && <BottomNav />}
