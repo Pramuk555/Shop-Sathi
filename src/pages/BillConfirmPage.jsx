@@ -14,7 +14,7 @@ export default function BillConfirmPage() {
   const location = useLocation();
   const { t } = useLanguage();
   const { currentUser } = useAuth();
-  const { items, subtotal, gst, total, gstEnabled, billLanguage } = location.state || { items: [], subtotal: 0, gst: 0, total: 0, gstEnabled: false, billLanguage: 'en' };
+  const { items, subtotal, gst, cgst, sgst, gstRate, total, gstEnabled, billLanguage } = location.state || { items: [], subtotal: 0, gst: 0, cgst: 0, sgst: 0, gstRate: 18, total: 0, gstEnabled: false, billLanguage: 'en' };
 
   // Helper for billing language strings
   const bt = (key) => translations[billLanguage]?.[key] || translations['en'][key];
@@ -30,8 +30,6 @@ export default function BillConfirmPage() {
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [billNumber, setBillNumber] = useState(null);
-  const [showPrintSelector, setShowPrintSelector] = useState(false);
-  const [printFormat, setPrintFormat] = useState(null);
   const [sharing, setSharing] = useState(null); // 'loading', 'done', or null
 
   // Shop Details for Print
@@ -233,13 +231,8 @@ export default function BillConfirmPage() {
     }
   };
 
-  const handlePrint = (format) => {
-    setPrintFormat(format);
-    setShowPrintSelector(false);
-    // Short delay to allow state update and re-render before print dialog
-    setTimeout(() => {
-      window.print();
-    }, 100);
+  const handlePrint = () => {
+    setTimeout(() => window.print(), 100);
   };
 
   const saveAndShare = async () => {
@@ -272,10 +265,13 @@ export default function BillConfirmPage() {
         style="width:72px;height:72px;object-fit:contain;filter:grayscale(100%);" />
     ` : '';
 
-    const gstRowHtml = (gstEnabled && freshGstNumber) ? `<p style="margin:0;font-size:11px;color:#333;">GST No: ${freshGstNumber}</p>` : '';
+    const gstRowHtml = (gstEnabled && freshGstNumber) ? `<p style="margin:0;font-size:11px;color:#333;">GSTIN: ${freshGstNumber}</p>` : '';
     const gstAmountHtml = gstEnabled ? `
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-        <span>GST (18%):</span><span>&#8377;${gst.toLocaleString()}</span>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;">
+        <span>CGST (${gstRate / 2}%):</span><span>&#8377;${cgst.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span>SGST (${gstRate / 2}%):</span><span>&#8377;${sgst.toLocaleString()}</span>
       </div>
     ` : '';
 
@@ -455,8 +451,8 @@ export default function BillConfirmPage() {
         </div>
 
         <div className="flex flex-col gap-4 pt-4">
-          <button 
-            onClick={() => setShowPrintSelector(true)}
+          <button
+            onClick={handlePrint}
             className="h-16 bg-surface-container-highest rounded-full flex items-center justify-center gap-3 font-headline text-xl font-black text-on-surface active:scale-95 transition-all shadow-md"
           >
             <span className="material-symbols-outlined">print</span>
@@ -502,192 +498,78 @@ export default function BillConfirmPage() {
           </button>
         </div>
 
-        {/* Print Format Selector Modal */}
-        {showPrintSelector && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-surface w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-8 duration-500">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="font-headline text-2xl font-bold">Print Format</h3>
-                <button onClick={() => setShowPrintSelector(false)} className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center active:scale-90">
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <button 
-                  onClick={() => handlePrint('A4')}
-                  className="w-full p-6 bg-surface-container-lowest rounded-2xl border-2 border-outline-variant hover:border-primary hover:bg-primary/5 transition-all text-left flex items-center gap-6 group"
-                >
-                  <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                    <span className="material-symbols-outlined text-3xl">description</span>
-                  </div>
-                  <div>
-                    <span className="block font-headline text-xl font-bold">A4 Printer</span>
-                    <span className="text-sm text-on-surface-variant font-medium">Full page professional bill</span>
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => handlePrint('thermal')}
-                  className="w-full p-6 bg-surface-container-lowest rounded-2xl border-2 border-outline-variant hover:border-secondary hover:bg-secondary/5 transition-all text-left flex items-center gap-6 group"
-                >
-                  <div className="w-14 h-14 bg-secondary/10 rounded-full flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all">
-                    <span className="material-symbols-outlined text-3xl">receipt</span>
-                  </div>
-                  <div>
-                    <span className="block font-headline text-xl font-bold">Thermal</span>
-                    <span className="text-sm text-on-surface-variant font-medium">Small receipt machine</span>
-                  </div>
-                </button>
-              </div>
-
-              <button 
-                onClick={() => setShowPrintSelector(false)}
-                className="w-full mt-6 py-4 text-on-surface-variant font-bold uppercase tracking-widest text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* --- DUAL PRINT FORMATS (Rendered via Portal for isolation) --- */}
+        {/* THERMAL RECEIPT — rendered in portal, shown only on print */}
         {isSuccess && createPortal(
           <div id="print-bill-content" className="hidden print:block">
-            {/* PROFESSIONAL A4 FORMAT */}
-            {printFormat === 'A4' && (
-              <div className="bill-a4">
-                {shopData.logo && <img src={shopData.logo} alt="Logo" className="logo" />}
-                <div className="shop-header">
-                  <div className="shop-name">{shopData.name}</div>
-                  <div className="shop-info">
-                    <p>{shopData.address}</p>
-                    <p>Phone: {shopData.phone}</p>
-                    {gstEnabled && shopData.gstNumber && <p>GST: {shopData.gstNumber}</p>}
-                  </div>
-                </div>
-                
-                <div className="divider"></div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                  <div>{bt('bill_number')}: #{billNumber}</div>
-                  <div>{bt('date').toUpperCase()}: {new Date().toLocaleDateString('en-GB')}</div>
-                </div>
-                <div>{bt('time').toUpperCase()}: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                <div>{bt('customer_name')}: {customerName || bt('guest')}</div>
-                <div style={{ fontWeight: 'bold', color: paymentMode === 'udhar' ? '#c0392b' : '#1a5c0a' }}>Payment: {paymentMode.toUpperCase()}</div>
-
-                <div className="divider"></div>
-
-                <table className="items-table">
-                  <thead>
-                    <tr>
-                      <th>{bt('item_description')}</th>
-                      <th style={{ textAlign: 'center' }}>{bt('qty_short') || bt('qty')}</th>
-                      <th style={{ textAlign: 'right' }}>{bt('rate')}</th>
-                      <th style={{ textAlign: 'right' }}>{bt('amount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                          {item.scientificName && <div style={{ fontSize: '10px', fontStyle: 'italic', opacity: 0.8 }}>{item.scientificName}</div>}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>{item.billingQty} {item.billingUnit || item.unit || ''}</td>
-                        <td style={{ textAlign: 'right' }}>₹{item.sellingPrice}/{item.unit || ''}</td>
-                        <td style={{ textAlign: 'right' }}>₹{item.price}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="total-section">
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Subtotal:</span> 
-                    <span>₹{subtotal.toLocaleString()}</span>
-                  </div>
-                  {gstEnabled && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>GST (18%):</span> 
-                      <span>₹{gst.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="divider" style={{ margin: '8px 0' }}></div>
-                  <div className="total-row">
-                    <span>{bt('total_amount').toUpperCase()}:</span> 
-                    <span>₹{total.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="divider"></div>
-                
-                <div style={{ textAlign: 'center', fontWeight: '800', fontStyle: 'italic', marginTop: '20px' }}>
-                  <p>{bt('visit_again')}</p>
-                  <p style={{ fontSize: '9px', marginTop: '8px', opacity: 0.5, fontWeight: 'normal' }}>Powered by ShopSaathi PWA</p>
-                </div>
+            <div className="bill-thermal">
+              {shopData.logo && <img src={shopData.logo} alt="Logo" className="logo" />}
+              <div className="shop-name">{shopData.name}</div>
+              <div className="shop-info">
+                <p>{shopData.address}</p>
+                <p>Ph: {shopData.phone}</p>
+                {shopData.phone && <p>WhatsApp: {shopData.phone}</p>}
+                {gstEnabled && shopData.gstNumber && <p>GSTIN: {shopData.gstNumber}</p>}
               </div>
-            )}
 
-            {/* THERMAL RECEIPT FORMAT */}
-            {printFormat === 'thermal' && (
-              <div className="bill-thermal">
-                {shopData.logo && <img src={shopData.logo} alt="Logo" className="logo" />}
-                <div className="shop-name">{shopData.name}</div>
-                <div className="shop-info">
-                  <p>{shopData.address}</p>
-                  <p>Ph: {shopData.phone}</p>
-                  {gstEnabled && shopData.gstNumber && <p>GST: {shopData.gstNumber}</p>}
-                </div>
-
-                <div className="thermal-divider"></div>
-                <div style={{ fontSize: '11px', textAlign: 'left' }}>
-                  <p>{bt('bill_number')}: #{billNumber}</p>
-                  <p>{bt('date')}: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-                <div className="thermal-divider"></div>
-                <div style={{ fontSize: '11px', textAlign: 'left', fontWeight: 'bold', color: paymentMode === 'udhar' ? '#c0392b' : '#000' }}>
-                  Payment: {paymentMode.toUpperCase()}
-                </div>
-                <div className="thermal-divider"></div>
-
-                <div style={{ textAlign: 'left' }}>
-                  {items.map((item, idx) => (
-                    <div key={idx} className="item-row">
-                      <div style={{ fontWeight: 'bold' }}>{item.name.toUpperCase()}</div>
-                      <div className="item-detail">
-                        <span>{item.billingQty} {item.billingUnit || item.unit || ''} x ₹{item.sellingPrice}/{item.unit || ''}</span>
-                        <span>₹{item.price}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="thermal-divider"></div>
-                <div style={{ textAlign: 'right', fontSize: '11px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Subtotal:</span> 
-                    <span>₹{subtotal.toLocaleString()}.00</span>
-                  </div>
-                  {gstEnabled && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>GST(18%):</span> 
-                      <span>₹{gst.toLocaleString()}.00</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="thermal-total">
-                  TOTAL: ₹{total.toLocaleString()}
-                </div>
-
-                <div className="footer">
-                  <p>THANK YOU! VISIT AGAIN! 🙏</p>
-                  <p style={{ fontSize: '9px', marginTop: '5px', fontWeight: 'normal' }}>Powered by ShopSaathi</p>
-                </div>
+              <div className="thermal-divider"></div>
+              <div style={{ fontSize: '11px', textAlign: 'left' }}>
+                <p style={{ fontWeight: 'bold' }}>{bt('bill_number')}: #{billNumber}</p>
+                <p>{bt('date')}: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                <p>{bt('customer_name')}: {customerName || bt('guest')}</p>
+                {customerPhone && <p>Ph: {customerPhone}</p>}
               </div>
-            )}
+              <div className="thermal-divider"></div>
+              <div style={{ fontSize: '11px', textAlign: 'left', fontWeight: 'bold', color: paymentMode === 'udhar' ? '#c0392b' : '#000' }}>
+                Paid by: {paymentMode.toUpperCase()}
+              </div>
+              <div className="thermal-divider"></div>
+
+              <div style={{ textAlign: 'left' }}>
+                {items.map((item, idx) => (
+                  <div key={idx} className="item-row">
+                    <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{item.name.toUpperCase()}</div>
+                    <div className="item-detail">
+                      <span>{item.billingQty}{item.billingUnit || item.unit || ''} x ₹{item.sellingPrice}/{item.unit || ''}</span>
+                      <span style={{ fontWeight: 'bold' }}>₹{item.price}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="thermal-divider"></div>
+              <div style={{ fontSize: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Subtotal:</span>
+                  <span>₹{subtotal.toLocaleString()}</span>
+                </div>
+                {gstEnabled && <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>CGST ({gstRate / 2}%):</span>
+                    <span>₹{cgst.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>SGST ({gstRate / 2}%):</span>
+                    <span>₹{sgst.toLocaleString()}</span>
+                  </div>
+                </>}
+              </div>
+
+              <div className="thermal-total">
+                TOTAL: ₹{total.toLocaleString()}
+              </div>
+
+              {shopData.upiId && (
+                <div style={{ fontSize: '11px', textAlign: 'center', margin: '8px 0' }}>
+                  <p style={{ fontWeight: 'bold' }}>Pay via UPI:</p>
+                  <p style={{ fontFamily: 'monospace' }}>{shopData.upiId}</p>
+                </div>
+              )}
+
+              <div className="footer">
+                <p>{bt('visit_again')}</p>
+                <p style={{ fontSize: '9px', marginTop: '5px', fontWeight: 'normal' }}>Powered by ShopSaathi</p>
+              </div>
+            </div>
           </div>,
           document.body
         )}
@@ -726,8 +608,13 @@ export default function BillConfirmPage() {
           ))}
         </div>
         {gstEnabled && (
-          <div className="border-t border-outline-variant/20 mt-2 pt-2 flex justify-between text-xs text-secondary font-bold">
-            <span>GST 18%</span><span>₹{gst.toLocaleString()}</span>
+          <div className="border-t border-outline-variant/20 mt-2 pt-2 space-y-0.5">
+            <div className="flex justify-between text-xs text-secondary font-bold">
+              <span>CGST ({gstRate / 2}%)</span><span>₹{cgst.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-xs text-secondary font-bold">
+              <span>SGST ({gstRate / 2}%)</span><span>₹{sgst.toLocaleString()}</span>
+            </div>
           </div>
         )}
       </section>

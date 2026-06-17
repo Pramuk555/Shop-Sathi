@@ -23,6 +23,12 @@ export default function NewBillPage() {
     }
     return false;
   });
+  const [gstRate, setGstRate] = useState(() => {
+    if (!currentUser || currentUser.demo) {
+      return Number(localStorage.getItem('gstRate') || 18);
+    }
+    return 18;
+  });
   const [isListening, setIsListening] = useState(false);
   const [items, setItems] = useState([]);
   
@@ -57,8 +63,9 @@ export default function NewBillPage() {
     });
 
     const unsubProfile = dbService.getShopProfile(currentUser.uid, (data) => {
-      if (data && data.gstEnabled !== undefined) {
-        setIsGstEnabled(data.gstEnabled);
+      if (data) {
+        if (data.gstEnabled !== undefined) setIsGstEnabled(data.gstEnabled);
+        if (data.gstRate !== undefined) setGstRate(Number(data.gstRate) || 18);
       }
     });
 
@@ -238,7 +245,9 @@ export default function NewBillPage() {
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-  const gst = isGstEnabled ? Math.ceil(subtotal * 0.18) : 0;
+  const cgst = isGstEnabled ? Math.ceil(subtotal * (gstRate / 2) / 100) : 0;
+  const sgst = cgst;
+  const gst = cgst + sgst;
   const total = subtotal + gst;
 
   const handleBillConfirmation = () => {
@@ -246,15 +255,18 @@ export default function NewBillPage() {
       alert("Please add items to the bill first.");
       return;
     }
-    navigate('/bill-confirm', { 
-      state: { 
-        items, 
-        subtotal, 
-        gst, 
+    navigate('/bill-confirm', {
+      state: {
+        items,
+        subtotal,
+        gst,
+        cgst,
+        sgst,
+        gstRate,
         total,
         gstEnabled: isGstEnabled,
-        billLanguage // Pass the chosen billing language
-      } 
+        billLanguage,
+      }
     });
   };
 
@@ -437,7 +449,7 @@ export default function NewBillPage() {
           <div className="space-y-0.5">
             <div className="flex items-center gap-2 text-on-surface-variant text-xs font-medium">
               <span>Sub ₹{subtotal.toLocaleString()}</span>
-              {isGstEnabled && <span className="text-secondary">+ GST ₹{gst.toLocaleString()}</span>}
+              {isGstEnabled && <span className="text-secondary">+ GST({gstRate}%) ₹{gst.toLocaleString()}</span>}
             </div>
             <div className="flex items-baseline gap-1">
               <span className="font-headline text-xs uppercase tracking-tighter text-on-surface-variant">Total</span>

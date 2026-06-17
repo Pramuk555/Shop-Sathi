@@ -276,11 +276,12 @@ button:not(:disabled):active, .clickable:active {
     overflow: visible !important;
   }
 
-  /* A4 Professional Format */
+  /* 80mm thermal paper — set printer paper width to 80mm in system print dialog */
   @page {
-    margin: 10mm;
+    size: 80mm auto;
+    margin: 2mm 0;
   }
-  
+
 }
 
 /* --- BILLING FORMAT STYLES (Accessible to both Capture and Print) --- */
@@ -366,70 +367,76 @@ button:not(:disabled):active, .clickable:active {
   justify-content: space-between;
 }
 
-/* Thermal Receipt Format (72mm) */
+/* Thermal Receipt — 80mm paper width, compatible with Rongta/Xprinter/Epson TM series */
 .bill-thermal {
-  width: 72mm;
-  max-width: 72mm;
+  width: 76mm;
+  max-width: 76mm;
   font-family: 'Courier New', monospace;
   font-size: 12px;
   color: #000;
-  margin: 0 auto;
-  padding: 5mm;
-  line-height: 1.3;
+  margin: 0;
+  padding: 2mm 3mm;
+  line-height: 1.4;
   text-align: center;
   background: #ffffff;
 }
 
 .bill-thermal .logo {
   display: block;
-  margin: 0 auto 10px;
-  width: 48px;
-  height: 48px;
+  margin: 0 auto 6px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   filter: grayscale(100%);
 }
 
 .bill-thermal .shop-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
 }
 
 .bill-thermal .shop-info {
-  font-size: 11px;
-  margin-bottom: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  margin-bottom: 4px;
 }
 
 .bill-thermal .thermal-divider {
+  border: none;
   border-top: 1px dashed #000;
-  margin: 8px 0;
+  margin: 5px 0;
 }
 
 .bill-thermal .item-row {
   text-align: left;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
 }
 
 .bill-thermal .item-detail {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  padding-left: 5px;
+  padding-left: 4px;
 }
 
 .bill-thermal .thermal-total {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  padding: 10px 0;
+  padding: 6px 0;
   border-top: 2px solid #000;
   border-bottom: 2px solid #000;
-  margin: 12px 0;
+  margin: 8px 0;
   text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .bill-thermal .footer {
   font-size: 11px;
-  margin-top: 15px;
+  margin-top: 10px;
   font-weight: bold;
+  text-align: center;
 }
