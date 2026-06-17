@@ -21,7 +21,12 @@ export default function BillConfirmPage() {
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [isUdhar, setIsUdhar] = useState(false);
+  const [paymentMode, setPaymentMode] = useState('cash'); // 'cash' | 'upi' | 'card' | 'udhar'
+  const isUdhar = paymentMode === 'udhar';
+  const [savedCustomers, setSavedCustomers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('savedCustomers') || '[]'); } catch { return []; }
+  });
+  const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [billNumber, setBillNumber] = useState(null);
@@ -108,6 +113,7 @@ export default function BillConfirmPage() {
           billNumber: nextNumber,
           customerName,
           customerPhone,
+          paymentMode,
           isUdhar,
           items,
           subtotal,
@@ -161,6 +167,7 @@ export default function BillConfirmPage() {
           billNumber: nextNumber,
           customerName,
           customerPhone,
+          paymentMode,
           isUdhar,
           items,
           subtotal,
@@ -197,6 +204,23 @@ export default function BillConfirmPage() {
         localStorage.setItem('todaySales', (curSales + total).toString());
         localStorage.setItem('todayProfit', (curProfit + (subtotal - totalPurchasePrice)).toString());
         localStorage.setItem('todayBills', (curBills + 1).toString());
+      }
+
+      // Save customer for future autocomplete
+      if (customerName.trim()) {
+        const existing = JSON.parse(localStorage.getItem('savedCustomers') || '[]');
+        const alreadyExists = existing.some(c => c.name.toLowerCase() === customerName.trim().toLowerCase());
+        if (!alreadyExists) {
+          const updated = [{ name: customerName.trim(), phone: customerPhone }, ...existing].slice(0, 100);
+          localStorage.setItem('savedCustomers', JSON.stringify(updated));
+          setSavedCustomers(updated);
+        } else if (customerPhone) {
+          const updated = existing.map(c =>
+            c.name.toLowerCase() === customerName.trim().toLowerCase() ? { ...c, phone: customerPhone } : c
+          );
+          localStorage.setItem('savedCustomers', JSON.stringify(updated));
+          setSavedCustomers(updated);
+        }
       }
 
       setBillNumber(nextNumber);
@@ -286,7 +310,8 @@ export default function BillConfirmPage() {
           <span>${bt('date').toUpperCase()}: ${new Date().toLocaleDateString('en-GB')}</span>
         </div>
         <div style="font-size:12px;margin-bottom:2px;">${bt('time').toUpperCase()}: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        <div style="font-size:12px;margin-bottom:12px;">${bt('customer_name')}: ${customerName || bt('guest')}</div>
+        <div style="font-size:12px;margin-bottom:2px;">${bt('customer_name')}: ${customerName || bt('guest')}</div>
+        <div style="font-size:12px;margin-bottom:12px;font-weight:700;color:${paymentMode === 'udhar' ? '#c0392b' : '#1a5c0a'};">Payment: ${paymentMode.toUpperCase()}</div>
 
         <!-- DIVIDER -->
         <div style="border-top:1.5px dashed #000;margin:12px 0;"></div>
@@ -414,6 +439,19 @@ export default function BillConfirmPage() {
         <div className="bg-surface-container-low rounded-3xl p-8 space-y-4">
           <p className="text-sm font-bold uppercase tracking-widest text-outline">Total Amount</p>
           <p className="font-headline text-5xl font-black text-primary">₹{total.toLocaleString()}</p>
+          <div className="flex items-center justify-center gap-2 text-sm font-bold text-on-surface-variant">
+            <span className="material-symbols-outlined text-base">
+              {paymentMode === 'cash' ? 'payments' : paymentMode === 'upi' ? 'qr_code_scanner' : paymentMode === 'card' ? 'credit_card' : 'menu_book'}
+            </span>
+            <span className="capitalize">{t(paymentMode) || paymentMode}</span>
+          </div>
+          {paymentMode === 'upi' && shopData.upiId && (
+            <div className="mt-2 bg-white rounded-2xl p-4 border border-outline-variant/30">
+              <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-2">Pay via UPI</p>
+              <p className="font-mono font-bold text-primary text-base break-all">{shopData.upiId}</p>
+              <p className="text-xs text-on-surface-variant mt-1">Ask customer to scan or enter this UPI ID</p>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-4 pt-4">
@@ -537,6 +575,7 @@ export default function BillConfirmPage() {
                 </div>
                 <div>{bt('time').toUpperCase()}: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 <div>{bt('customer_name')}: {customerName || bt('guest')}</div>
+                <div style={{ fontWeight: 'bold', color: paymentMode === 'udhar' ? '#c0392b' : '#1a5c0a' }}>Payment: {paymentMode.toUpperCase()}</div>
 
                 <div className="divider"></div>
 
@@ -606,6 +645,10 @@ export default function BillConfirmPage() {
                 <div style={{ fontSize: '11px', textAlign: 'left' }}>
                   <p>{bt('bill_number')}: #{billNumber}</p>
                   <p>{bt('date')}: {new Date().toLocaleDateString('en-GB')} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                <div className="thermal-divider"></div>
+                <div style={{ fontSize: '11px', textAlign: 'left', fontWeight: 'bold', color: paymentMode === 'udhar' ? '#c0392b' : '#000' }}>
+                  Payment: {paymentMode.toUpperCase()}
                 </div>
                 <div className="thermal-divider"></div>
 
@@ -689,19 +732,89 @@ export default function BillConfirmPage() {
         )}
       </section>
 
+      {/* Payment Mode */}
+      <section className="animate-in fade-in duration-300">
+        <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1 mb-2">{t('payment_mode') || 'Payment Mode'}</p>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { mode: 'cash', icon: 'payments', label: t('cash') },
+            { mode: 'upi', icon: 'qr_code_scanner', label: t('upi') },
+            { mode: 'card', icon: 'credit_card', label: t('card') || 'Card' },
+            { mode: 'udhar', icon: 'menu_book', label: t('udhar') },
+          ].map(({ mode, icon, label }) => {
+            const isActive = paymentMode === mode;
+            const isUdharMode = mode === 'udhar';
+            return (
+              <button
+                key={mode}
+                onClick={() => setPaymentMode(mode)}
+                className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
+                  isActive
+                    ? isUdharMode
+                      ? 'border-error bg-error-container text-error'
+                      : 'border-primary bg-primary/10 text-primary'
+                    : 'border-transparent bg-surface-container-low text-on-surface-variant'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-xl ${isActive ? 'filled-icon' : ''}`}>{icon}</span>
+                <span className="text-[11px] font-bold">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {paymentMode === 'udhar' && (
+          <p className="text-xs text-error font-medium mt-2 px-1">Bill will be added to Udhar (credit) — amount to be collected later</p>
+        )}
+      </section>
+
       {/* Customer form */}
       <section className="space-y-2 animate-in fade-in duration-300">
         <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1">{t('customer_info') || 'Customer Info'} <span className="font-normal normal-case">(optional)</span></p>
         <div className="bg-surface-container-low rounded-2xl p-3 space-y-3">
-          <div className="bg-surface-container-high rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
-            <span className="material-symbols-outlined text-outline text-xl">person</span>
-            <input
-              className="bg-transparent border-none w-full text-base font-semibold focus:ring-0 p-0 text-on-surface"
-              placeholder={t('customer_name') + ' — e.g. Anil Kumar'}
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-            />
+          <div className="relative">
+            <div className="bg-surface-container-high rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
+              <span className="material-symbols-outlined text-outline text-xl">person</span>
+              <input
+                className="bg-transparent border-none w-full text-base font-semibold focus:ring-0 p-0 text-on-surface"
+                placeholder={t('customer_name') + ' — e.g. Anil Kumar'}
+                type="text"
+                value={customerName}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomerName(val);
+                  if (val.trim().length > 0) {
+                    const matches = savedCustomers.filter(c =>
+                      c.name.toLowerCase().includes(val.toLowerCase())
+                    ).slice(0, 4);
+                    setCustomerSuggestions(matches);
+                  } else {
+                    setCustomerSuggestions([]);
+                  }
+                }}
+                onBlur={() => setTimeout(() => setCustomerSuggestions([]), 200)}
+              />
+            </div>
+            {customerSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-20 bg-surface rounded-xl shadow-lg border border-outline-variant/30 mt-1 overflow-hidden">
+                {customerSuggestions.map((c, i) => (
+                  <button
+                    key={i}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-container-low active:bg-surface-container transition-colors"
+                    onMouseDown={() => {
+                      setCustomerName(c.name);
+                      setCustomerPhone(c.phone || '');
+                      setCustomerSuggestions([]);
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-sm text-outline">person</span>
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">{c.name}</p>
+                      {c.phone && <p className="text-xs text-on-surface-variant">{c.phone}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="bg-surface-container-high rounded-xl px-4 py-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all">
             <span className="material-symbols-outlined text-outline text-xl">call</span>
@@ -716,23 +829,6 @@ export default function BillConfirmPage() {
           </div>
         </div>
       </section>
-
-      {/* Udhar toggle */}
-      <div
-        className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${isUdhar ? 'bg-error-container border border-error/30' : 'bg-surface-container-low'}`}
-        onClick={() => setIsUdhar(!isUdhar)}
-      >
-        <div className="flex items-center gap-3">
-          <span className={`material-symbols-outlined text-xl ${isUdhar ? 'text-error filled-icon' : 'text-on-surface-variant'}`}>menu_book</span>
-          <div>
-            <p className="font-bold text-sm text-on-surface">{t('add_to_udhar')}</p>
-            <p className="text-xs text-on-surface-variant">{t('customer_debt')}</p>
-          </div>
-        </div>
-        <div className={`w-12 h-6 rounded-full relative p-0.5 transition-colors duration-300 ${isUdhar ? 'bg-error' : 'bg-surface-container-highest'}`}>
-          <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${isUdhar ? 'translate-x-6' : 'translate-x-0'}`} />
-        </div>
-      </div>
 
       {/* Generate Bill Button */}
       <div className="fixed-action-footer bg-surface/95 backdrop-blur-md px-4 py-3 border-t border-outline-variant/30 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] rounded-t-2xl">
