@@ -31,3 +31,4 @@ lint_output_utf8.txt
 *.njsproj
 *.sln
 *.sw?
+.gstack/
