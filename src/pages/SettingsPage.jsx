@@ -301,49 +301,40 @@ export default function SettingsPage() {
             </button>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant px-2">GST Identification Number</label>
-            <div className="bg-surface-container-high rounded-lg p-4 focus-within:ring-2 focus-within:ring-secondary transition-all">
-              <input
-                className="bg-transparent border-none outline-none focus:ring-0 w-full text-lg font-bold p-0 text-on-surface uppercase"
-                placeholder="29XXXXX..."
-                type="text"
-                value={gstNumber}
-                onChange={(e) => handleFieldChange('gstNumber', e.target.value.toUpperCase(), setGstNumber)}
-              />
-            </div>
-          </div>
+          {isGstEnabled && (
+            <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant px-2">GST Identification Number</label>
+                <div className="bg-surface-container-high rounded-lg p-4 focus-within:ring-2 focus-within:ring-secondary transition-all">
+                  <input
+                    className="bg-transparent border-none outline-none focus:ring-0 w-full text-lg font-bold p-0 text-on-surface uppercase"
+                    placeholder="29XXXXX..."
+                    type="text"
+                    value={gstNumber}
+                    onChange={(e) => handleFieldChange('gstNumber', e.target.value.toUpperCase(), setGstNumber)}
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant px-2">GST Rate %</label>
-            <p className="text-xs text-on-surface-variant px-2">CGST + SGST will each be half of this rate</p>
-            <div className="flex gap-2 flex-wrap">
-              {[0, 5, 12, 18, 28].map(rate => (
-                <button
-                  key={rate}
-                  onClick={() => handleFieldChange('gstRate', rate, setGstRate)}
-                  className={`px-4 py-2 rounded-xl text-sm font-black border-2 transition-all ${gstRate === rate ? 'border-secondary bg-secondary text-white' : 'border-outline-variant bg-surface-container-high text-on-surface'}`}
-                >{rate}%</button>
-              ))}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant px-2">GST Rate %</label>
+                <div className="flex gap-2">
+                  {[0, 5, 12, 18].map(rate => (
+                    <button
+                      key={rate}
+                      onClick={() => handleFieldChange('gstRate', rate, setGstRate)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-black border-2 transition-all ${gstRate === rate ? 'border-secondary bg-secondary text-white' : 'border-outline-variant bg-surface-container-high text-on-surface'}`}
+                    >{rate}%</button>
+                  ))}
+                </div>
+                {gstRate > 0 && (
+                  <p className="text-xs text-secondary font-bold px-1">
+                    CGST {gstRate / 2}% + SGST {gstRate / 2}% = {gstRate}% total on each bill
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="bg-surface-container-high rounded-lg p-3 flex items-center gap-3 focus-within:ring-2 focus-within:ring-secondary transition-all mt-1">
-              <span className="text-on-surface-variant font-bold text-sm">Custom %</span>
-              <input
-                className="bg-transparent border-none outline-none focus:ring-0 flex-1 text-lg font-bold p-0 text-on-surface [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                type="number"
-                min="0"
-                max="100"
-                value={gstRate}
-                onChange={(e) => handleFieldChange('gstRate', Number(e.target.value) || 0, setGstRate)}
-              />
-              <span className="text-on-surface-variant font-bold">%</span>
-            </div>
-            {isGstEnabled && gstRate > 0 && (
-              <p className="text-xs text-secondary font-bold px-2">
-                CGST {gstRate / 2}% + SGST {gstRate / 2}% = {gstRate}% total
-              </p>
-            )}
-          </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant px-2">Your UPI ID</label>

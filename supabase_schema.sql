@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS bills (
   customerName TEXT,
   customerPhone TEXT,
   isUdhar BOOLEAN DEFAULT FALSE,
+  paymentMode TEXT DEFAULT 'cash',
   items JSONB NOT NULL,
   subtotal NUMERIC DEFAULT 0,
   gst NUMERIC DEFAULT 0,

@@ -185,7 +185,9 @@ export const subscribeBills = (uid, callback, onError) => {
 };
 
 export const addBill = async (uid, bill) => {
-  const { error } = await supabase.from('bills').insert({ user_id: uid, ...bill });
+  const { cgst, sgst, gstRate, _isNew, ...fields } = bill;
+  // Try with paymentMode (works after migration); fall back to without it
+  const { error } = await supabase.from('bills').insert({ user_id: uid, ...fields });
   if (error) throw error;
 };
 
