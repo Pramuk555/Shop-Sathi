@@ -413,7 +413,7 @@ export default function UdharPage() {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-4 sm:items-center sm:p-0">
           <div className="fixed inset-0 transition-opacity bg-black/60 modal-backdrop-fade" onClick={() => { setIsAddModalOpen(false); setEditingUdhar(null); }}></div>
-          <div className="relative bg-surface-container-lowest rounded-3xl w-full max-w-md p-6 shadow-2xl modal-content-slide">
+          <div className="relative bg-surface-container-lowest rounded-3xl w-full max-w-md shadow-2xl modal-content-slide overflow-y-auto max-h-[90dvh]" style={{padding: '1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom)) 1.5rem'}}>
             <h3 className="font-headline font-bold text-2xl mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">{editingUdhar ? 'edit_note' : 'person_add'}</span>
               {editingUdhar ? 'Edit Udhar Entry' : 'New Udhar Entry'}
