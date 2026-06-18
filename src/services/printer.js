@@ -1,13 +1,12 @@
 // ESC/POS Bluetooth Thermal Printer Service
-// Works with: Xprinter XP-58IIK BT, Rongta RPP300, most cheap BLE thermal printers
+// Compatible with: Xprinter XP-58IIK BT, Rongta RPP300, most cheap 58mm BLE printers
 
 const PRINTER_SERVICE_UUIDS = [
-  '000018f0-0000-1000-8000-00805f9b34fb', // Common thermal printer service
-  '6e400001-b5b3-f393-e0a9-e50e24dcca9e', // Nordic UART (used by many BLE printers)
-  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip BM70
-  '0000ff00-0000-1000-8000-00805f9b34fb', // Generic serial
+  '000018f0-0000-1000-8000-00805f9b34fb',
+  '6e400001-b5b3-f393-e0a9-e50e24dcca9e',
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  '0000ff00-0000-1000-8000-00805f9b34fb',
 ];
-
 const WRITE_CHAR_UUIDS = [
   '000018f1-0000-1000-8000-00805f9b34fb',
   '6e400002-b5b3-f393-e0a9-e50e24dcca9e',
@@ -15,153 +14,251 @@ const WRITE_CHAR_UUIDS = [
   '0000ff01-0000-1000-8000-00805f9b34fb',
 ];
 
-// ESC/POS command helpers
+// 58mm paper = 32 printable chars at normal font
+const LINE_WIDTH = 32;
+
+// ESC/POS bytes
 const ESC = 0x1B;
 const GS  = 0x1D;
 const LF  = 0x0A;
 
-const cmd = (...bytes) => new Uint8Array(bytes);
-
+const cmd  = (...bytes) => new Uint8Array(bytes);
 const INIT        = cmd(ESC, 0x40);
 const CENTER      = cmd(ESC, 0x61, 0x01);
 const LEFT        = cmd(ESC, 0x61, 0x00);
 const BOLD_ON     = cmd(ESC, 0x45, 0x01);
 const BOLD_OFF    = cmd(ESC, 0x45, 0x00);
-const DOUBLE_SIZE = cmd(GS,  0x21, 0x11); // 2x width + 2x height
+const DOUBLE_SIZE = cmd(GS,  0x21, 0x11);
 const NORMAL_SIZE = cmd(GS,  0x21, 0x00);
-const FEED_CUT    = cmd(GS,  0x56, 0x42, 0x05); // Feed 5mm and cut
-const FEED_3      = cmd(ESC, 0x64, 0x03); // Feed 3 lines
+const FEED_CUT    = cmd(GS,  0x56, 0x42, 0x05);
+const FEED_LINES  = (n) => cmd(ESC, 0x64, n);
 
-const encodeText = (text) => {
-  const encoder = new TextEncoder();
-  return encoder.encode(text + '\n');
+const enc = new TextEncoder();
+const text  = (s) => enc.encode(s + '\n');
+const dash  = () => text('-'.repeat(LINE_WIDTH));
+
+// Left + right on same line, padded to LINE_WIDTH
+const justify = (left, right) => {
+  const l = String(left).substring(0, LINE_WIDTH - String(right).length - 1);
+  const pad = LINE_WIDTH - l.length - String(right).length;
+  return text(l + ' '.repeat(Math.max(1, pad)) + right);
 };
 
-const DASH_LINE = () => encodeText('--------------------------------');
-const DOT_LINE  = () => encodeText('- - - - - - - - - - - - - - - -');
+// Truncate string to max length
+const trunc = (s, max) => String(s).length > max ? String(s).substring(0, max - 1) + '.' : String(s);
 
-// Format a left+right justified line (32 chars wide for 58mm)
-const justifyLine = (left, right, width = 32) => {
-  const spaces = width - left.length - right.length;
-  return encodeText(left + ' '.repeat(Math.max(1, spaces)) + right);
-};
-
-// Merge multiple Uint8Arrays into one
+// Merge Uint8Arrays
 const merge = (...arrays) => {
   const total = arrays.reduce((sum, a) => sum + a.length, 0);
   const out = new Uint8Array(total);
-  let offset = 0;
-  for (const a of arrays) { out.set(a, offset); offset += a.length; }
+  let off = 0;
+  for (const a of arrays) { out.set(a, off); off += a.length; }
   return out;
 };
 
-// Build the full ESC/POS receipt
-export const buildReceipt = (bill) => {
+// ─── Logo → ESC/POS raster bitmap ───────────────────────────────────────────
+// Converts any image URL (including base64 data URLs) to GS v 0 raster command
+// targetWidth: dots wide on paper. 58mm printer = max 384 dots, use 160-192
+const imageToEscPos = (url, targetWidth = 160) => new Promise((resolve) => {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const scale = targetWidth / img.width;
+    const w = targetWidth;
+    const h = Math.round(img.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    // White background first (transparent PNGs become white)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const { data } = ctx.getImageData(0, 0, w, h);
+    const byteWidth = Math.ceil(w / 8);
+    const bytes = new Uint8Array(byteWidth * h);
+
+    // Atkinson dithering for clean B&W output (looks much better than threshold)
+    const gray = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      gray[i] = (0.299 * data[i*4] + 0.587 * data[i*4+1] + 0.114 * data[i*4+2]) / 255;
+    }
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = y * w + x;
+        const old = gray[idx];
+        const nw  = old < 0.5 ? 0 : 1;
+        const err = (old - nw) / 8;
+        gray[idx] = nw;
+        if (nw === 0) { // dark dot → set bit
+          bytes[y * byteWidth + Math.floor(x / 8)] |= (0x80 >> (x % 8));
+        }
+        // Spread error to neighbours
+        const spread = [[1,0],[2,0],[-1,1],[0,1],[1,1],[0,2]];
+        for (const [dx, dy] of spread) {
+          const nx = x + dx, ny = y + dy;
+          if (nx >= 0 && nx < w && ny < h) gray[ny * w + nx] += err;
+        }
+      }
+    }
+
+    const xL = byteWidth & 0xFF, xH = byteWidth >> 8;
+    const yL = h & 0xFF,         yH = h >> 8;
+    const header = cmd(GS, 0x76, 0x30, 0x00, xL, xH, yL, yH);
+    resolve(merge(header, bytes));
+  };
+  img.onerror = () => resolve(new Uint8Array(0)); // fail silently
+  img.src = url;
+});
+
+// ─── Build ESC/POS receipt ───────────────────────────────────────────────────
+export const buildReceipt = async (bill) => {
   const {
-    shopName = 'ShopSaathi Store',
+    shopName    = 'ShopSaathi Store',
     shopAddress = '',
-    shopPhone = '',
-    shopUpi = '',
-    gstNumber = '',
+    shopPhone   = '',
+    shopLogo    = '',
+    shopUpi     = '',
+    gstNumber   = '',
     billNumber,
     customerName,
     customerPhone,
-    paymentMode = 'cash',
-    items = [],
-    subtotal = 0,
-    cgst = 0,
-    sgst = 0,
-    gstEnabled = false,
-    gstRate = 18,
-    total = 0,
-    date = new Date(),
+    paymentMode  = 'cash',
+    items        = [],
+    subtotal     = 0,
+    cgst         = 0,
+    sgst         = 0,
+    gstEnabled   = false,
+    gstRate      = 18,
+    total        = 0,
+    date         = new Date(),
   } = bill;
 
   const dateStr = new Date(date).toLocaleDateString('en-GB');
   const timeStr = new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const parts = [
+  // ── Logo (async, fails silently) ──
+  let logoPart = new Uint8Array(0);
+  if (shopLogo) {
+    try {
+      const bitmap = await imageToEscPos(shopLogo, 160);
+      logoPart = merge(CENTER, bitmap, cmd(LF));
+    } catch {}
+  }
+
+  // ── Header ──
+  const headerParts = [
     INIT,
+    logoPart,
     CENTER,
-    BOLD_ON,
-    encodeText(shopName.toUpperCase()),
-    BOLD_OFF,
-    shopAddress ? encodeText(shopAddress) : new Uint8Array(0),
-    shopPhone   ? encodeText('Ph: ' + shopPhone) : new Uint8Array(0),
-    gstNumber   ? encodeText('GSTIN: ' + gstNumber) : new Uint8Array(0),
-    DOT_LINE(),
+    BOLD_ON, text(trunc(shopName.toUpperCase(), LINE_WIDTH)), BOLD_OFF,
+  ];
+  if (shopAddress) {
+    // Wrap long address across two lines
+    const addr = String(shopAddress);
+    if (addr.length <= LINE_WIDTH) {
+      headerParts.push(text(addr));
+    } else {
+      headerParts.push(text(addr.substring(0, LINE_WIDTH)));
+      headerParts.push(text(addr.substring(LINE_WIDTH)));
+    }
+  }
+  if (shopPhone)  headerParts.push(text('Ph: ' + shopPhone));
+  if (gstNumber)  headerParts.push(text('GSTIN: ' + gstNumber));
+  headerParts.push(dash());
 
+  // ── Bill info ──
+  const infoParts = [
     LEFT,
-    encodeText(`Bill No: #${billNumber}  ${dateStr} ${timeStr}`),
-    encodeText(`Customer: ${customerName || 'Guest'}`),
-    customerPhone ? encodeText(`Phone: ${customerPhone}`) : new Uint8Array(0),
-    BOLD_ON,
-    encodeText(`Paid by: ${paymentMode.toUpperCase()}`),
-    BOLD_OFF,
-    DASH_LINE(),
+    text(`Bill No: #${billNumber}   ${dateStr}`),
+    text(`Time: ${timeStr}`),
+    text(`Customer: ${trunc(customerName || 'Guest', 24)}`),
+  ];
+  if (customerPhone) infoParts.push(text(`Phone: ${customerPhone}`));
+  infoParts.push(BOLD_ON, text(`Paid by: ${paymentMode.toUpperCase()}`), BOLD_OFF);
+  infoParts.push(dash());
 
-    // Items header
-    justifyLine('ITEM', 'AMT'),
-    DASH_LINE(),
+  // ── Items header ──
+  const itemHeaderParts = [
+    text(
+      trunc('ITEM', 18).padEnd(18) +
+      'QTY'.padStart(6) +
+      'AMT'.padStart(8)
+    ),
+    dash(),
   ];
 
-  // Items
+  // ── Item rows ──
+  const itemParts = [];
   for (const item of items) {
-    const itemName = (item.name || '').substring(0, 20);
-    const qtyStr = `${item.billingQty}${item.billingUnit || item.unit || ''}`;
-    const rateStr = `@${item.sellingPrice}/${item.unit || 'pc'}`;
-    const amtStr = `Rs.${item.price}`;
-    parts.push(encodeText(itemName));
-    parts.push(justifyLine(`  ${qtyStr} ${rateStr}`, amtStr));
+    const name   = trunc(item.name || '', 30);
+    const qty    = `${item.billingQty}${item.billingUnit || item.unit || ''}`;
+    const amt    = `Rs.${item.price}`;
+    const rate   = `@Rs.${item.sellingPrice}/${item.unit || 'pc'}`;
+
+    // Line 1: item name
+    itemParts.push(text(name));
+    // Line 2: qty + rate on left, amount on right — indented 2 spaces
+    itemParts.push(justify('  ' + trunc(qty + ' ' + rate, LINE_WIDTH - amt.length - 3), amt));
   }
+  itemParts.push(dash());
 
-  parts.push(DASH_LINE());
-
-  // Totals
-  parts.push(justifyLine('Subtotal:', `Rs.${subtotal}`));
+  // ── Totals ──
+  const totalParts = [justify('Subtotal:', `Rs.${subtotal}`)];
   if (gstEnabled && cgst > 0) {
-    parts.push(justifyLine(`CGST (${gstRate / 2}%):`, `Rs.${cgst}`));
-    parts.push(justifyLine(`SGST (${gstRate / 2}%):`, `Rs.${sgst}`));
+    totalParts.push(justify(`  CGST (${gstRate/2}%):`, `Rs.${cgst}`));
+    totalParts.push(justify(`  SGST (${gstRate/2}%):`, `Rs.${sgst}`));
   }
-  parts.push(DASH_LINE());
+  totalParts.push(dash());
 
-  // Total — big
-  parts.push(CENTER, BOLD_ON, DOUBLE_SIZE);
-  parts.push(encodeText(`TOTAL: Rs.${total}`));
-  parts.push(NORMAL_SIZE, BOLD_OFF);
-  parts.push(DASH_LINE());
+  // ── Grand total (double size) ──
+  const grandTotalParts = [
+    CENTER, BOLD_ON, DOUBLE_SIZE,
+    text(`TOTAL Rs.${total}`),
+    NORMAL_SIZE, BOLD_OFF,
+    dash(),
+  ];
 
-  // UPI
+  // ── UPI ──
+  const upiParts = [];
   if (shopUpi) {
-    parts.push(CENTER);
-    parts.push(encodeText('Pay via UPI:'));
-    parts.push(BOLD_ON, encodeText(shopUpi), BOLD_OFF);
-    parts.push(DASH_LINE());
+    upiParts.push(CENTER, text('Pay via UPI:'), BOLD_ON, text(shopUpi), BOLD_OFF, dash());
   }
 
-  // Footer
-  parts.push(CENTER);
-  parts.push(encodeText('Thank you! Visit Again!'));
-  parts.push(encodeText('Powered by ShopSaathi'));
-  parts.push(FEED_3);
-  parts.push(FEED_CUT);
+  // ── Footer ──
+  const footerParts = [
+    CENTER,
+    text('Thank you! Visit Again!'),
+    text('Powered by ShopSaathi'),
+    FEED_LINES(3),
+    FEED_CUT,
+  ];
 
-  return merge(...parts);
+  return merge(
+    ...headerParts,
+    ...infoParts,
+    ...itemHeaderParts,
+    ...itemParts,
+    ...totalParts,
+    ...grandTotalParts,
+    ...upiParts,
+    ...footerParts,
+  );
 };
 
-// Send data to BLE printer in chunks (BLE MTU is usually 20 bytes)
-const sendChunked = async (characteristic, data, chunkSize = 100) => {
+// ─── Bluetooth connection ────────────────────────────────────────────────────
+const sendChunked = async (char, data, chunkSize = 100) => {
   for (let i = 0; i < data.length; i += chunkSize) {
-    await characteristic.writeValue(data.slice(i, i + chunkSize));
-    await new Promise(r => setTimeout(r, 30)); // small delay between chunks
+    await char.writeValue(data.slice(i, i + chunkSize));
+    await new Promise(r => setTimeout(r, 30));
   }
 };
 
-// Connect to a Bluetooth printer and return a print function
 export const connectPrinter = async () => {
-  if (!navigator.bluetooth) {
-    throw new Error('Web Bluetooth not supported. Use Chrome on Android.');
-  }
+  if (!navigator.bluetooth) throw new Error('Web Bluetooth not supported. Use Chrome on Android.');
 
   const device = await navigator.bluetooth.requestDevice({
     acceptAllDevices: true,
@@ -169,45 +266,36 @@ export const connectPrinter = async () => {
   });
 
   const server = await device.gatt.connect();
-
-  // Try each service UUID until one works
   let writeChar = null;
+
   for (const svcUuid of PRINTER_SERVICE_UUIDS) {
     try {
-      const service = await server.getPrimaryService(svcUuid);
+      const svc = await server.getPrimaryService(svcUuid);
       for (const charUuid of WRITE_CHAR_UUIDS) {
         try {
-          const char = await service.getCharacteristic(charUuid);
-          if (char.properties.write || char.properties.writeWithoutResponse) {
-            writeChar = char;
-            break;
-          }
+          const c = await svc.getCharacteristic(charUuid);
+          if (c.properties.write || c.properties.writeWithoutResponse) { writeChar = c; break; }
         } catch {}
       }
       if (writeChar) break;
     } catch {}
   }
 
-  // Fallback: try all services and find any writable characteristic
+  // Fallback: scan all services
   if (!writeChar) {
     const services = await server.getPrimaryServices();
     for (const svc of services) {
       try {
         const chars = await svc.getCharacteristics();
-        for (const char of chars) {
-          if (char.properties.write || char.properties.writeWithoutResponse) {
-            writeChar = char;
-            break;
-          }
+        for (const c of chars) {
+          if (c.properties.write || c.properties.writeWithoutResponse) { writeChar = c; break; }
         }
         if (writeChar) break;
       } catch {}
     }
   }
 
-  if (!writeChar) {
-    throw new Error('Could not find a writable characteristic on this printer.');
-  }
+  if (!writeChar) throw new Error('No writable characteristic found on this printer.');
 
   return {
     deviceName: device.name || 'Bluetooth Printer',
@@ -216,7 +304,6 @@ export const connectPrinter = async () => {
   };
 };
 
-// Save/load paired printer name in localStorage
 export const getSavedPrinterName = () => localStorage.getItem('pairedPrinterName') || null;
-export const savePrinterName = (name) => localStorage.setItem('pairedPrinterName', name);
-export const clearPrinterName = () => localStorage.removeItem('pairedPrinterName');
+export const savePrinterName    = (name) => localStorage.setItem('pairedPrinterName', name);
+export const clearPrinterName   = () => localStorage.removeItem('pairedPrinterName');

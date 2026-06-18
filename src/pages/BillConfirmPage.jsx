@@ -249,12 +249,13 @@ export default function BillConfirmPage() {
         printerRef.current = printer;
       }
       setPrintStatus('printing');
-      const receipt = buildReceipt({
-        shopName: shopData.name,
+      const receipt = await buildReceipt({
+        shopName:    shopData.name,
         shopAddress: shopData.address,
-        shopPhone: shopData.phone,
-        shopUpi: shopData.upiId,
-        gstNumber: shopData.gstNumber,
+        shopPhone:   shopData.phone,
+        shopLogo:    shopData.logo,
+        shopUpi:     shopData.upiId,
+        gstNumber:   shopData.gstNumber,
         billNumber,
         customerName,
         customerPhone,
