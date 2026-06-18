@@ -452,14 +452,6 @@ export default function BillConfirmPage() {
 
         <div className="flex flex-col gap-4 pt-4">
           <button
-            onClick={handlePrint}
-            className="h-16 bg-surface-container-highest rounded-full flex items-center justify-center gap-3 font-headline text-xl font-black text-on-surface active:scale-95 transition-all shadow-md"
-          >
-            <span className="material-symbols-outlined">print</span>
-            {t('print_bill')}
-          </button>
-
-          <button 
             onClick={saveAndShare}
             disabled={sharing === 'loading'}
             className={`h-16 rounded-full flex items-center justify-center gap-3 font-headline text-xl font-black transition-all shadow-md active:scale-95 ${
@@ -478,8 +470,8 @@ export default function BillConfirmPage() {
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined">share</span>
-                <span>📄 {t('save_share')}</span>
+                <span className="material-symbols-outlined">print</span>
+                <span>Print / Share Bill</span>
               </>
             )}
           </button>
