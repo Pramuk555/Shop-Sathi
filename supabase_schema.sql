@@ -1,5 +1,9 @@
--- Supabase Schema for ShopSaathi PWA
--- Paste this into the Supabase SQL Editor (https://app.supabase.com)
+-- ============================================================
+-- ShopSaathi — FRESH INSTALL ONLY
+-- ⚠️  WARNING: This file DROPS ALL TABLES and recreates them.
+-- ⚠️  NEVER run this on a live database with real data.
+-- ⚠️  For adding new columns use: migrations/add_columns.sql
+-- ============================================================
 
 -- 1. Shop Profiles
 CREATE TABLE IF NOT EXISTS shop_profiles (
