@@ -96,11 +96,13 @@ const imageToEscPos = (url, targetWidth = 160) => new Promise((resolve) => {
         if (nw === 0) { // dark dot → set bit
           bytes[y * byteWidth + Math.floor(x / 8)] |= (0x80 >> (x % 8));
         }
-        // Spread error to neighbours
+        // Spread error to neighbours (clamped to [0,1] to prevent artifacts)
         const spread = [[1,0],[2,0],[-1,1],[0,1],[1,1],[0,2]];
         for (const [dx, dy] of spread) {
           const nx = x + dx, ny = y + dy;
-          if (nx >= 0 && nx < w && ny < h) gray[ny * w + nx] += err;
+          if (nx >= 0 && nx < w && ny < h) {
+            gray[ny * w + nx] = Math.min(1, Math.max(0, gray[ny * w + nx] + err));
+          }
         }
       }
     }
@@ -110,7 +112,7 @@ const imageToEscPos = (url, targetWidth = 160) => new Promise((resolve) => {
     const header = cmd(GS, 0x76, 0x30, 0x00, xL, xH, yL, yH);
     resolve(merge(header, bytes));
   };
-  img.onerror = () => resolve(new Uint8Array(0)); // fail silently
+  img.onerror = () => { console.warn('ShopSaathi: logo failed to load for thermal print — printing without logo'); resolve(new Uint8Array(0)); };
   img.src = url;
 });
 
@@ -250,7 +252,8 @@ export const buildReceipt = async (bill) => {
 };
 
 // ─── Bluetooth connection ────────────────────────────────────────────────────
-const sendChunked = async (char, data, chunkSize = 100) => {
+// 20 bytes is the BLE GATT minimum MTU payload — safe for all printers including budget ones
+const sendChunked = async (char, data, chunkSize = 20) => {
   for (let i = 0; i < data.length; i += chunkSize) {
     await char.writeValue(data.slice(i, i + chunkSize));
     await new Promise(r => setTimeout(r, 30));

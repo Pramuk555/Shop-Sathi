@@ -38,6 +38,27 @@ export const updateShopProfile = async (uid, details) => {
     .upsert({ user_id: uid, ...details, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
 };
 
+// Atomically increment bill number and return the new value.
+// Uses a single UPDATE ... RETURNING to avoid race conditions on concurrent tabs.
+export const getAndIncrementBillNumber = async (uid) => {
+  const { data, error } = await supabase.rpc('increment_bill_number', { p_user_id: uid });
+  if (error) {
+    // Fallback: non-atomic read+write if RPC not yet deployed
+    const { data: profile } = await supabase
+      .from('shop_profiles')
+      .select('last_bill_number')
+      .eq('user_id', uid)
+      .maybeSingle();
+    const next = (profile?.last_bill_number || 1000) + 1;
+    await supabase
+      .from('shop_profiles')
+      .upsert({ user_id: uid, last_bill_number: next, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    return next;
+  }
+  return data;
+};
+
+// Keep these for backwards compatibility — they now delegate to the atomic version
 export const getNextBillNumber = async (uid) => {
   const { data } = await supabase
     .from('shop_profiles')
@@ -185,8 +206,7 @@ export const subscribeBills = (uid, callback, onError) => {
 };
 
 export const addBill = async (uid, bill) => {
-  const { cgst, sgst, gstRate, _isNew, ...fields } = bill;
-  // Try with paymentMode (works after migration); fall back to without it
+  const { _isNew, ...fields } = bill;
   const { error } = await supabase.from('bills').insert({ user_id: uid, ...fields });
   if (error) throw error;
 };

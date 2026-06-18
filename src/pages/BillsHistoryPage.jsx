@@ -368,7 +368,7 @@ function BillDetailModal({ bill, shopData, onClose }) {
               <p>Customer: {bill.customerName || 'Guest'}</p>
               {bill.customerPhone && <p>Phone: {bill.customerPhone}</p>}
               <p className={bill.isUdhar ? 'text-red-600 font-black' : 'text-green-700 font-black'}>
-                {bill.isUdhar ? 'Credit / Udhar' : 'Cash / Paid'}
+                {bill.isUdhar ? 'Credit / Udhar' : (bill.paymentMode ? bill.paymentMode.charAt(0).toUpperCase() + bill.paymentMode.slice(1) : 'Cash')}
               </p>
             </div>
           </div>
@@ -406,12 +406,23 @@ function BillDetailModal({ bill, shopData, onClose }) {
                 <span>₹{(bill.subtotal || 0).toLocaleString()}</span>
               </div>
             )}
-            {bill.gst > 0 && (
+            {(bill.cgst > 0 || bill.sgst > 0) ? (
+              <>
+                <div className="flex justify-between text-[11px] font-bold text-gray-600">
+                  <span>CGST {bill.gstRate ? `(${bill.gstRate / 2}%)` : ''}</span>
+                  <span>₹{(bill.cgst || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-[11px] font-bold text-gray-600">
+                  <span>SGST {bill.gstRate ? `(${bill.gstRate / 2}%)` : ''}</span>
+                  <span>₹{(bill.sgst || 0).toLocaleString()}</span>
+                </div>
+              </>
+            ) : bill.gst > 0 ? (
               <div className="flex justify-between text-[11px] font-bold text-gray-600">
-                <span>GST (18%)</span>
+                <span>GST {bill.gstRate ? `(${bill.gstRate}%)` : ''}</span>
                 <span>₹{(bill.gst || 0).toLocaleString()}</span>
               </div>
-            )}
+            ) : null}
             <div className="flex justify-between text-lg font-black pt-2 border-t border-gray-300">
               <span>TOTAL</span>
               <span>₹{(bill.total || 0).toLocaleString()}</span>

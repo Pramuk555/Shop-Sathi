@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const [lowStockCount, setLowStockCount] = useState(() => {
     if (!currentUser || currentUser.demo) {
       const inv = JSON.parse(localStorage.getItem('products') || '[]');
-      return inv.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5)).length;
+      return inv.filter(p => Number(p.stock) <= Number(p.lowStockAlert ?? 5)).length;
     }
     return 0;
   });
@@ -133,7 +133,7 @@ export default function DashboardPage() {
       if (data) setShopName(data.shopName || 'ShopSaathi');
     });
     const unsubInventory = dbService.subscribeInventory(currentUser.uid, (data) => {
-      setLowStockCount(data.filter(p => Number(p.stock) <= Number(p.lowStockAlert || 5)).length);
+      setLowStockCount(data.filter(p => Number(p.stock) <= Number(p.lowStockAlert ?? 5)).length);
     });
     const unsubBills = dbService.subscribeBills(currentUser.uid, processBillsData);
     const unsubUdhar = dbService.subscribeUdhar(currentUser.uid, (data) => {
@@ -349,7 +349,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-headline text-base font-black">₹{bill.total.toLocaleString()}</p>
+                  <p className="font-headline text-base font-black">₹{(bill.total || 0).toLocaleString()}</p>
                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${bill.isUdhar ? 'bg-error-container text-error' : 'bg-primary-container text-on-primary-container'}`}>
                     {bill.isUdhar ? t('udhar') : t('paid')}
                   </span>

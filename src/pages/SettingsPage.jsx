@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -61,6 +61,7 @@ export default function SettingsPage() {
     return 18;
   });
   const [showToast, setShowToast] = useState(false);
+  const saveTimerRef = useRef(null);
 
   // Sync with Firestore
   useEffect(() => {
@@ -88,7 +89,8 @@ export default function SettingsPage() {
     const newValue = !isGstEnabled;
     setIsGstEnabled(newValue);
     if (currentUser && !currentUser.demo) {
-      dbService.updateShopProfile(currentUser.uid, { gstEnabled: newValue });
+      dbService.updateShopProfile(currentUser.uid, { gstEnabled: newValue })
+        .catch(err => console.error('Failed to save GST toggle:', err));
     } else {
       localStorage.setItem('gstEnabled', JSON.stringify(newValue));
     }
@@ -145,7 +147,8 @@ export default function SettingsPage() {
         setShopLogo(bwBase64);
         
         if (currentUser && !currentUser.demo) {
-          dbService.updateShopProfile(currentUser.uid, { shopLogo: bwBase64 });
+          dbService.updateShopProfile(currentUser.uid, { shopLogo: bwBase64 })
+            .catch(err => console.error('Failed to save logo:', err));
         } else {
           localStorage.setItem('shopLogo', bwBase64);
         }
@@ -161,7 +164,8 @@ export default function SettingsPage() {
   const removeLogo = () => {
     setShopLogo('');
     if (currentUser && !currentUser.demo) {
-      dbService.updateShopProfile(currentUser.uid, { shopLogo: '' });
+      dbService.updateShopProfile(currentUser.uid, { shopLogo: '' })
+        .catch(err => console.error('Failed to remove logo:', err));
     } else {
       localStorage.removeItem('shopLogo');
     }
@@ -170,7 +174,11 @@ export default function SettingsPage() {
   const handleFieldChange = (key, value, setter) => {
     setter(value);
     if (currentUser && !currentUser.demo) {
-      dbService.updateShopProfile(currentUser.uid, { [key]: value });
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        dbService.updateShopProfile(currentUser.uid, { [key]: value })
+          .catch(err => console.error('Failed to save setting:', err));
+      }, 500);
     } else {
       localStorage.setItem(key, value);
     }

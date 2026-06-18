@@ -7,7 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import * as dbService from '../services/db';
 import { translations } from '../translations';
-import { connectPrinter, buildReceipt, getSavedPrinterName, savePrinterName } from '../services/printer';
+import { connectPrinter, buildReceipt, savePrinterName } from '../services/printer';
 
 export default function BillConfirmPage() {
 
@@ -34,7 +34,7 @@ export default function BillConfirmPage() {
   const [sharing, setSharing] = useState(null); // 'loading', 'done', or null
   const [printStatus, setPrintStatus] = useState(null); // 'connecting', 'printing', 'done', 'error', null
   const printerRef = useRef(null);
-  const savedPrinterName = getSavedPrinterName();
+
 
   // Shop Details for Print
   const [shopData, setShopData] = useState(() => {
@@ -81,7 +81,9 @@ export default function BillConfirmPage() {
   }, [currentUser]);
 
   const handleConfirm = async () => {
-    if (items.length === 0) return;
+    if (loading) return; // prevent double-tap
+    const validItems = items.filter(i => (i.billingQty || 0) > 0);
+    if (validItems.length === 0) return;
     setLoading(true);
 
     const isRealUser = currentUser && !currentUser.demo;
@@ -91,20 +93,18 @@ export default function BillConfirmPage() {
     try {
       if (isRealUser) {
         // --- REAL SUPABASE MODE ---
-        // 1. Get and increment bill number
-        nextNumber = await dbService.getNextBillNumber(currentUser.uid);
-        await dbService.incrementBillNumber(currentUser.uid);
-        
+        // 1. Get and increment bill number atomically
+        nextNumber = await dbService.getAndIncrementBillNumber(currentUser.uid);
+
         // 2. Prepare bill and update stock
-        for (const item of items) {
-          const qty = item.billingQty || 1;
-          const itemProfit = Number(item.price) - (Number(item.purchasePrice || 0) * qty);
+        for (const item of validItems) {
+          const isSubUnit = item.billingUnit === 'g' || item.billingUnit === 'ml';
+          const deduction = isSubUnit ? item.billingQty / 1000 : item.billingQty;
+          // Profit uses same unit as purchasePrice (per kg/L for sub-units)
+          const itemProfit = Number(item.price) - (Number(item.purchasePrice || 0) * deduction);
           profit += itemProfit;
 
           if (item.id) {
-            const deduction = (item.billingUnit === 'g' || item.billingUnit === 'ml')
-              ? item.billingQty / 1000
-              : item.billingQty;
             await dbService.updateProduct(currentUser.uid, item.id, {
               stock: Math.max(0, Number(item.stock) - deduction)
             });
@@ -113,11 +113,11 @@ export default function BillConfirmPage() {
 
         const newBill = {
           billNumber: nextNumber,
-          customerName,
-          customerPhone,
+          customerName: customerName.replace(/<[^>]*>/g, '').trim(),
+          customerPhone: customerPhone.replace(/[^0-9+\-\s]/g, '').trim(),
           paymentMode,
           isUdhar,
-          items,
+          items: validItems,
           subtotal,
           gst,
           total,
@@ -149,11 +149,11 @@ export default function BillConfirmPage() {
         let totalPurchasePrice = 0;
 
         const updatedProducts = products.map(p => {
-          const billItem = items.find(item => item.id === p.id);
+          const billItem = validItems.find(item => item.id === p.id);
           if (billItem) {
-            const qty = billItem.billingQty || 1;
-            const deduction = (billItem.billingUnit === 'g' || billItem.billingUnit === 'ml') ? qty / 1000 : qty;
-            totalPurchasePrice += (Number(p.purchasePrice || 0) * qty);
+            const isSubUnit = billItem.billingUnit === 'g' || billItem.billingUnit === 'ml';
+            const deduction = isSubUnit ? billItem.billingQty / 1000 : billItem.billingQty;
+            totalPurchasePrice += (Number(p.purchasePrice || 0) * deduction);
             return { ...p, stock: Math.max(0, Number(p.stock) - deduction) };
           }
           return p;
@@ -208,17 +208,19 @@ export default function BillConfirmPage() {
         localStorage.setItem('todayBills', (curBills + 1).toString());
       }
 
-      // Save customer for future autocomplete
-      if (customerName.trim()) {
+      // Save customer for future autocomplete (strip HTML before storing)
+      const safeName = customerName.replace(/<[^>]*>/g, '').trim();
+      const safePhone = customerPhone.replace(/[^0-9+\-\s]/g, '').trim();
+      if (safeName) {
         const existing = JSON.parse(localStorage.getItem('savedCustomers') || '[]');
-        const alreadyExists = existing.some(c => c.name.toLowerCase() === customerName.trim().toLowerCase());
+        const alreadyExists = existing.some(c => c.name.toLowerCase() === safeName.toLowerCase());
         if (!alreadyExists) {
-          const updated = [{ name: customerName.trim(), phone: customerPhone }, ...existing].slice(0, 100);
+          const updated = [{ name: safeName, phone: safePhone }, ...existing].slice(0, 100);
           localStorage.setItem('savedCustomers', JSON.stringify(updated));
           setSavedCustomers(updated);
-        } else if (customerPhone) {
+        } else if (safePhone) {
           const updated = existing.map(c =>
-            c.name.toLowerCase() === customerName.trim().toLowerCase() ? { ...c, phone: customerPhone } : c
+            c.name.toLowerCase() === safeName.toLowerCase() ? { ...c, phone: safePhone } : c
           );
           localStorage.setItem('savedCustomers', JSON.stringify(updated));
           setSavedCustomers(updated);
@@ -285,15 +287,23 @@ export default function BillConfirmPage() {
     }
   };
 
+  // Escape HTML special chars before injecting into innerHTML template
+  const escHtml = (str) => String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
   const saveAndShare = async () => {
     setSharing('loading');
 
     // Use shopData state (loaded from Supabase for real users, localStorage for demo)
-    const freshShopName = shopData.name || 'My Shop';
-    const freshShopAddress = shopData.address || '';
-    const freshShopPhone = shopData.phone || '';
-    const freshShopLogo = shopData.logo || '';
-    const freshGstNumber = shopData.gstNumber || '';
+    const freshShopName = escHtml(shopData.name || 'My Shop');
+    const freshShopAddress = escHtml(shopData.address || '');
+    const freshShopPhone = escHtml(shopData.phone || '');
+    const freshShopLogo = shopData.logo || ''; // URL/base64 — not injected as text
+    const freshGstNumber = escHtml(shopData.gstNumber || '');
 
     // Build item rows HTML
     const calcItemTotal = (item) => Number(item.price) || 0;
@@ -301,17 +311,19 @@ export default function BillConfirmPage() {
     const itemRowsHtml = items.map(item => `
       <tr>
         <td style="padding:8px 4px;vertical-align:top;border-bottom:1px solid #eee;">
-          <div style="font-weight:700;font-size:13px;">${item.name}</div>
-          ${item.scientificName ? `<div style="font-size:10px;font-style:italic;color:#666;">${item.scientificName}</div>` : ''}
+          <div style="font-weight:700;font-size:13px;">${escHtml(item.name)}</div>
+          ${item.scientificName ? `<div style="font-size:10px;font-style:italic;color:#666;">${escHtml(item.scientificName)}</div>` : ''}
         </td>
-        <td style="padding:8px 4px;text-align:center;vertical-align:top;border-bottom:1px solid #eee;">${item.billingQty} ${item.billingUnit || item.unit || ''}</td>
-        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${item.sellingPrice}/${item.unit || ''}</td>
+        <td style="padding:8px 4px;text-align:center;vertical-align:top;border-bottom:1px solid #eee;">${escHtml(item.billingQty)} ${escHtml(item.billingUnit || item.unit || '')}</td>
+        <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;">&#8377;${escHtml(item.sellingPrice)}/${escHtml(item.unit || '')}</td>
         <td style="padding:8px 4px;text-align:right;vertical-align:top;border-bottom:1px solid #eee;font-weight:700;">&#8377;${calcItemTotal(item)}</td>
       </tr>
     `).join('');
 
-    const logoHtml = freshShopLogo ? `
-      <img src="${freshShopLogo}" alt="Logo"
+    // Only allow data: URIs or https: URLs to prevent attribute injection
+    const safeLogoSrc = freshShopLogo && /^(data:image\/|https:\/\/)/.test(freshShopLogo) ? freshShopLogo : '';
+    const logoHtml = safeLogoSrc ? `
+      <img src="${safeLogoSrc}" alt="Logo"
         style="width:72px;height:72px;object-fit:contain;filter:grayscale(100%);" />
     ` : '';
 
@@ -356,8 +368,8 @@ export default function BillConfirmPage() {
           <span>${bt('date').toUpperCase()}: ${new Date().toLocaleDateString('en-GB')}</span>
         </div>
         <div style="font-size:12px;margin-bottom:2px;">${bt('time').toUpperCase()}: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        <div style="font-size:12px;margin-bottom:2px;">${bt('customer_name')}: ${customerName || bt('guest')}</div>
-        <div style="font-size:12px;margin-bottom:12px;font-weight:700;color:${paymentMode === 'udhar' ? '#c0392b' : '#1a5c0a'};">Payment: ${paymentMode.toUpperCase()}</div>
+        <div style="font-size:12px;margin-bottom:2px;">${bt('customer_name')}: ${escHtml(customerName || bt('guest'))}</div>
+        <div style="font-size:12px;margin-bottom:12px;font-weight:700;color:${paymentMode === 'udhar' ? '#c0392b' : '#1a5c0a'};">Payment: ${escHtml(paymentMode.toUpperCase())}</div>
 
         <!-- DIVIDER -->
         <div style="border-top:1.5px dashed #000;margin:12px 0;"></div>

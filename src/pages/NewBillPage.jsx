@@ -108,18 +108,15 @@ export default function NewBillPage() {
     recognition.continuous = false;
 
     recognition.onstart = () => {
-      console.log('Voice recognition started (NewBill)');
       setIsListening(true);
     };
 
     recognition.onend = () => {
-      console.log('Voice recognition ended (NewBill)');
       setIsListening(false);
     };
-    
+
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript.replace(/[.?!,;:]/g, "").trim();
-      console.log('Transcript received (NewBill):', transcript);
       setSearchQuery(transcript);
       setIsListening(false);
     };

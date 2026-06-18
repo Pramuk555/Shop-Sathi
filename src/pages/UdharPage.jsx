@@ -25,6 +25,7 @@ export default function UdharPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(null); // stores udhar object
   const [paymentAmount, setPaymentAmount] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [loadingUdhar, setLoadingUdhar] = useState(() => !!(currentUser && !currentUser.demo));
 
   // Persist data to Firestore/LocalStorage
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function UdharPage() {
     const unsub = dbService.subscribeUdhar(currentUser.uid, (data) => {
       if (!data) return;
       setUdhars(data);
+      setLoadingUdhar(false);
     });
 
     return () => unsub();
@@ -79,19 +81,22 @@ export default function UdharPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleSaveUdhar = (e) => {
+  const handleSaveUdhar = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const amount = Number(formData.get('amount'));
     const type = formData.get('type');
-    const name = formData.get('name');
-    const phone = formData.get('phone');
-    const description = formData.get('description');
+    const name = (formData.get('name') || '').replace(/<[^>]*>/g, '').trim();
+    const phone = (formData.get('phone') || '').replace(/[^0-9+\-\s]/g, '').trim();
+    const description = formData.get('description') || '';
     const dueDate = formData.get('dueDate') || '';
+
+    if (!name) { alert('Name is required.'); return; }
+    if (!amount || amount <= 0 || isNaN(amount)) { alert('Please enter a valid positive amount.'); return; }
 
     const newUdharData = editingUdhar ? {
       name, phone, amount,
-      remainingAmount: amount - (editingUdhar.paidAmount || 0),
+      remainingAmount: Math.max(0, amount - (editingUdhar.paidAmount || 0)),
       description, dueDate, type,
       status: (amount - (editingUdhar.paidAmount || 0)) <= 0 ? 'paid' : ((editingUdhar.paidAmount || 0) > 0 ? 'partial' : 'pending')
     } : {
@@ -105,25 +110,29 @@ export default function UdharPage() {
     };
 
     if (currentUser && !currentUser.demo) {
-      if (editingUdhar) {
-        dbService.updateUdhar(currentUser.uid, editingUdhar.id, newUdharData);
-      } else {
-        dbService.addUdhar(currentUser.uid, newUdharData);
+      try {
+        if (editingUdhar) {
+          await dbService.updateUdhar(currentUser.uid, editingUdhar.id, newUdharData);
+        } else {
+          await dbService.addUdhar(currentUser.uid, newUdharData);
+        }
+      } catch (err) {
+        alert('Failed to save: ' + (err.message || 'Unknown error'));
+        return;
       }
     } else {
-      // Demo Mode
       if (editingUdhar) {
         setUdhars(prev => prev.map(u => u.id === editingUdhar.id ? { ...u, ...newUdharData } : u));
       } else {
         setUdhars([{ ...newUdharData, id: Date.now() }, ...udhars]);
       }
     }
-    
+
     setIsAddModalOpen(false);
     setEditingUdhar(null);
   };
 
-  const handleMarkPaid = (id) => {
+  const handleMarkPaid = async (id) => {
     const udhar = udhars.find(u => u.id === id);
     if (!udhar) return;
 
@@ -131,34 +140,47 @@ export default function UdharPage() {
       paidAmount: udhar.amount,
       remainingAmount: 0,
       status: 'paid',
-      payments: [...udhar.payments, { amount: udhar.remainingAmount, date: new Date().toLocaleDateString('en-GB'), note: 'Full Payment' }]
+      payments: [...(udhar.payments || []), { amount: udhar.remainingAmount, date: new Date().toLocaleDateString('en-GB'), note: 'Full Payment' }]
     };
 
     if (currentUser && !currentUser.demo) {
-      dbService.updateUdhar(currentUser.uid, id, update);
+      try {
+        await dbService.updateUdhar(currentUser.uid, id, update);
+      } catch (err) {
+        alert('Failed to mark as paid: ' + (err.message || 'Unknown error'));
+      }
     } else {
       setUdhars(prev => prev.map(u => u.id === id ? { ...u, ...update } : u));
     }
   };
 
-  const handlePartialPayment = (e) => {
+  const handlePartialPayment = async (e) => {
     e.preventDefault();
     if (!isPaymentModalOpen || !paymentAmount) return;
-    
+
     const amount = Number(paymentAmount);
     const u = isPaymentModalOpen;
+
+    if (!amount || amount <= 0 || isNaN(amount)) { alert('Please enter a valid positive amount.'); return; }
+    if (amount > u.remainingAmount) { alert(`Amount cannot exceed remaining ₹${u.remainingAmount}`); return; }
+
     const newPaid = u.paidAmount + amount;
-    const newRemaining = u.amount - newPaid;
-    
+    const newRemaining = Math.max(0, u.amount - newPaid);
+
     const update = {
       paidAmount: newPaid,
       remainingAmount: newRemaining,
       status: newRemaining <= 0 ? 'paid' : 'partial',
-      payments: [...u.payments, { amount, date: new Date().toLocaleDateString('en-GB'), note: 'Partial Payment' }]
+      payments: [...(u.payments || []), { amount, date: new Date().toLocaleDateString('en-GB'), note: 'Partial Payment' }]
     };
 
     if (currentUser && !currentUser.demo) {
-      dbService.updateUdhar(currentUser.uid, u.id, update);
+      try {
+        await dbService.updateUdhar(currentUser.uid, u.id, update);
+      } catch (err) {
+        alert('Failed to save payment: ' + (err.message || 'Unknown error'));
+        return;
+      }
     } else {
       setUdhars(prev => prev.map(item => item.id === u.id ? { ...item, ...update } : item));
     }
@@ -208,7 +230,7 @@ export default function UdharPage() {
     return diff === 0 ? 'Today' : `${diff} days ago`;
   };
 
-  const getInitials = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const getInitials = (name) => (name || '?').split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   const colors = ['bg-blue-100 text-blue-600', 'bg-green-100 text-green-600', 'bg-purple-100 text-purple-600', 'bg-orange-100 text-orange-600', 'bg-pink-100 text-pink-600'];
 
@@ -287,7 +309,12 @@ export default function UdharPage() {
 
       {/* Customer List */}
       <div className="space-y-4 pb-24">
-        {filteredUdhars.length === 0 ? (
+        {loadingUdhar ? (
+          <div className="py-20 text-center flex flex-col items-center gap-4 opacity-50">
+            <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            <p className="font-bold text-lg">Loading udhar entries...</p>
+          </div>
+        ) : filteredUdhars.length === 0 ? (
           <div className="py-20 text-center flex flex-col items-center gap-4 opacity-50">
             <span className="text-6xl">🎉</span>
             <p className="font-bold text-lg">No udhar entries yet.<br/>Everyone is settled up!</p>
