@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import html2canvas from 'html2canvas';
@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import * as dbService from '../services/db';
 import { translations } from '../translations';
+import { connectPrinter, buildReceipt, getSavedPrinterName, savePrinterName } from '../services/printer';
 
 export default function BillConfirmPage() {
 
@@ -31,6 +32,9 @@ export default function BillConfirmPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [billNumber, setBillNumber] = useState(null);
   const [sharing, setSharing] = useState(null); // 'loading', 'done', or null
+  const [printStatus, setPrintStatus] = useState(null); // 'connecting', 'printing', 'done', 'error', null
+  const printerRef = useRef(null);
+  const savedPrinterName = getSavedPrinterName();
 
   // Shop Details for Print
   const [shopData, setShopData] = useState(() => {
@@ -231,8 +235,53 @@ export default function BillConfirmPage() {
     }
   };
 
-  const handlePrint = () => {
-    setTimeout(() => window.print(), 100);
+  const handleBluetoothPrint = async () => {
+    if (!navigator.bluetooth) {
+      alert('Bluetooth printing requires Chrome browser on Android. Use "Print / Share Bill" to download the PDF instead.');
+      return;
+    }
+    try {
+      setPrintStatus('connecting');
+      // Reuse existing connection if available, else connect fresh
+      if (!printerRef.current) {
+        const printer = await connectPrinter();
+        savePrinterName(printer.deviceName);
+        printerRef.current = printer;
+      }
+      setPrintStatus('printing');
+      const receipt = buildReceipt({
+        shopName: shopData.name,
+        shopAddress: shopData.address,
+        shopPhone: shopData.phone,
+        shopUpi: shopData.upiId,
+        gstNumber: shopData.gstNumber,
+        billNumber,
+        customerName,
+        customerPhone,
+        paymentMode,
+        items,
+        subtotal,
+        cgst,
+        sgst,
+        gstEnabled,
+        gstRate,
+        total,
+        date: new Date(),
+      });
+      await printerRef.current.print(receipt);
+      setPrintStatus('done');
+      setTimeout(() => setPrintStatus(null), 3000);
+    } catch (err) {
+      console.error('Bluetooth print failed:', err);
+      printerRef.current = null;
+      setPrintStatus('error');
+      if (err.message?.includes('cancelled') || err.name === 'NotFoundError') {
+        setPrintStatus(null); // user cancelled device picker — silent
+      } else {
+        alert('Print failed: ' + (err.message || 'Unknown error'));
+        setPrintStatus(null);
+      }
+    }
   };
 
   const saveAndShare = async () => {
@@ -451,6 +500,28 @@ export default function BillConfirmPage() {
         </div>
 
         <div className="flex flex-col gap-4 pt-4">
+          {/* Bluetooth direct print button */}
+          <button
+            onClick={handleBluetoothPrint}
+            disabled={printStatus === 'connecting' || printStatus === 'printing'}
+            className={`h-16 rounded-full flex items-center justify-center gap-3 font-headline text-xl font-black transition-all shadow-md active:scale-95 ${
+              printStatus === 'done' ? 'bg-green-500 text-white' :
+              printStatus === 'connecting' || printStatus === 'printing' ? 'bg-surface-container-highest text-on-surface-variant' :
+              'bg-surface-container-highest text-on-surface'
+            }`}
+          >
+            {printStatus === 'connecting' ? (
+              <><div className="w-5 h-5 border-2 border-on-surface/30 border-t-on-surface rounded-full animate-spin"></div><span>Connecting...</span></>
+            ) : printStatus === 'printing' ? (
+              <><div className="w-5 h-5 border-2 border-on-surface/30 border-t-on-surface rounded-full animate-spin"></div><span>Printing...</span></>
+            ) : printStatus === 'done' ? (
+              <><span className="material-symbols-outlined">check_circle</span><span>Printed!</span></>
+            ) : (
+              <><span className="material-symbols-outlined">print</span><span>Print on Bluetooth Printer</span></>
+            )}
+          </button>
+
+          {/* PDF share button — unchanged */}
           <button
             onClick={saveAndShare}
             disabled={sharing === 'loading'}
